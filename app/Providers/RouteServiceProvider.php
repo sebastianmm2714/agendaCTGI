@@ -7,6 +7,8 @@ use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvi
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class RouteServiceProvider extends ServiceProvider
 {
@@ -17,7 +19,7 @@ class RouteServiceProvider extends ServiceProvider
      *
      * @var string
      */
-    public const HOME = '/formulario';
+    public const HOME = '/redirect';
 
     /**
      * Define your route model bindings, pattern filters, and other route configuration.

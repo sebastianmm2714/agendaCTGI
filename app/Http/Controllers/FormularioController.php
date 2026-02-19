@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\AgendaDesplazamiento;
+use App\Models\Departamento;
+use App\Models\Municipio;
 
 class FormularioController extends Controller
 {
@@ -14,19 +16,9 @@ class FormularioController extends Controller
             $agenda = AgendaDesplazamiento::with('actividades')->findOrFail($id);
         }
 
-        $municipios = [
-            'BARBOSA',
-            'BELLO',
-            'CALDAS',
-            'COPACABANA',
-            'ENVIGADO',
-            'GIRARDOTA',
-            'ITAGUI',
-            'LA ESTRELLA',
-            'SABANETA'
-        ];
+        $departamentos = Departamento::orderBy('nombre')->get();
 
-        return view('formulario', compact('municipios', 'agenda'));
+        return view('formulario', compact('agenda'));
     }
 
     public function store(Request $request)
@@ -40,11 +32,14 @@ class FormularioController extends Controller
             'numero_contrato' => 'required|numeric',
             'anio_contrato' => 'required|integer',
             'fecha_vencimiento' => 'required|date|after_or_equal:today',
+            'clasificacion_informacion' => 'required|in:publica,clasificada,reservada',
 
-            'cargo' => 'required|in:Instructor,Servidor_Publico',
+            'cargo' => 'required|in:Contratista,Servidor_Publico',
             'objetivo_contractual' => 'required|string',
 
-            'municipio_destino' => 'required|string|max:100',
+            'destino_departamento_id' => 'required|exists:departamentos,id',
+            'destino_municipio_id' => 'nullable|exists:municipios,id',
+
 
             'entidad_empresa' => 'required|string|max:120',
             'contacto' => 'required|string|max:120',
@@ -65,21 +60,37 @@ class FormularioController extends Controller
 
         /* ================= DATOS CALCULADOS ================= */
 
-        $data['ruta'] = 'MEDELLÍN - ' . $data['municipio_destino'] . ' - MEDELLÍN';
-        $data['ciudad_destino'] = $data['municipio_destino'];
+        $departamento = Departamento::find($request->destino_departamento_id);
+        $municipio = $request->destino_municipio_id
+            ? Municipio::find($request->destino_municipio_id)
+            : null;
+
+        $data['ciudad_destino'] = $municipio
+            ? $municipio->nombre
+            : $departamento->nombre;
+
+        $data['ruta'] = 'MEDELLIN - ' . $data['ciudad_destino'] . ' - MEDELLIN';
 
         $data['direccion_general'] = 'ANTIOQUIA';
         $data['dependencia_centro'] = 'CENTRO TEXTIL Y DE GESTION INDUSTRIAL';
 
         $data['obligaciones_contrato'] = $request->obligaciones_contrato;
 
-        $data['estado'] = 'ENVIADA';
+        $data['estado'] = 'BORRADOR';
         $data['user_id'] = auth()->id();
 
         if ($request->hasFile('firma_contratista')) {
             $data['firma_contratista'] = $request
                 ->file('firma_contratista')
                 ->store('firmas', 'public');
+        } elseif ($request->filled('firma_base64')) {
+            // Procesar firma en base64
+            $imageData = $request->firma_base64;
+            $imageData = str_replace('data:image/png;base64,', '', $imageData);
+            $imageData = str_replace(' ', '+', $imageData);
+            $fileName = 'firmas/firma_' . time() . '_' . uniqid() . '.png';
+            \Illuminate\Support\Facades\Storage::disk('public')->put($fileName, base64_decode($imageData));
+            $data['firma_contratista'] = $fileName;
         }
 
         $agenda = AgendaDesplazamiento::create($data);
@@ -92,5 +103,18 @@ class FormularioController extends Controller
     {
         $agenda = AgendaDesplazamiento::with('actividades')->findOrFail($id);
         return view('agenda.pdf', compact('agenda'));
+    }
+
+    public function enviar($id)
+    {
+        $agenda = AgendaDesplazamiento::where('user_id', auth()->id())->findOrFail($id);
+
+        if ($agenda->estado !== 'BORRADOR') {
+            return back()->with('error', 'Esta agenda ya ha sido enviada o procesada.');
+        }
+
+        $agenda->update(['estado' => 'ENVIADA']);
+
+        return redirect()->route('reportar-dia')->with('success', 'Agenda enviada a coordinación para revisión.');
     }
 }

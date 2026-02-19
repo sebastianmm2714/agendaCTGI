@@ -14,29 +14,32 @@ class AgendaActividadController extends Controller
         $agenda = AgendaDesplazamiento::findOrFail($agendaId);
 
         $data = $request->validate([
-            'fecha_reporte' => [
-                'required',
-                'date',
-                'after_or_equal:' . $agenda->fecha_inicio_desplazamiento,
-                'before_or_equal:' . $agenda->fecha_fin_desplazamiento,
-            ],
-            'medios_transporte' => 'required|array|min:1',
-            'medios_transporte.*' => 'in:area,terrestre,fluvial',
+            'fecha_reporte' => 'required|date',
+            'transporte_ida' => 'required|array|min:1',
+            'transporte_ida.*' => 'in:aereo,terrestre,fluvial',
+            'transporte_regreso' => 'required|array|min:1',
+            'transporte_regreso.*' => 'in:aereo,terrestre,fluvial',
 
-            'actividades_ejecutar' => 'required|string|max:500',
-            'desplazamientos_internos' => 'nullable|string|max:150',
-            'observaciones' => 'nullable|string|max:255',
+            'actividades' => 'required|array|min:1',
+            'actividades.*.hora' => 'required|string',
+            'actividades.*.actividad' => 'required|string|max:160',
+            'valor_aereo' => 'nullable|string|max:50',
+            'valor_terrestre' => 'nullable|string|max:50',
+            'valor_intermunicipal' => 'nullable|string|max:50',
         ]);
 
-        AgendaActividad::create([
+        $actividad = AgendaActividad::create([
             'agenda_desplazamiento_id' => $agenda->id,
             'fecha_reporte' => $data['fecha_reporte'],
-            'ruta_ida' => 'MEDELLÍN - ' . $agenda->municipio_destino,
-            'ruta_regreso' => $agenda->municipio_destino . ' - MEDELLÍN',
-            'medios_transporte' => $data['medios_transporte'],
-            'actividades_ejecutar' => $data['actividades_ejecutar'],
-            'desplazamientos_internos' => $data['desplazamientos_internos'] ?? null,
-            'observaciones' => $data['observaciones'] ?? null,
+            'ruta_ida' => 'MEDELLIN - ' . $agenda->ciudad_destino,
+            'ruta_regreso' => $agenda->ciudad_destino . ' - MEDELLIN',
+            'transporte_ida' => $data['transporte_ida'],
+            'transporte_regreso' => $data['transporte_regreso'],
+            'medios_transporte' => $data['transporte_ida'], // Fallback for old code if any
+            'actividades_ejecutar' => $data['actividades'],
+            'valor_aereo' => $data['valor_aereo'] ?? null,
+            'valor_terrestre' => $data['valor_terrestre'] ?? null,
+            'valor_intermunicipal' => $data['valor_intermunicipal'] ?? null,
         ]);
 
         return back()->with('success', 'Actividad registrada correctamente');

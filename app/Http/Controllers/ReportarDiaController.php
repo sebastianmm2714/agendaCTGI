@@ -31,6 +31,16 @@ class ReportarDiaController extends Controller
 
         $agenda->load('actividades');
 
-        return view('reportar_dia.show', compact('agenda'));
+        // Encontrar la última fecha reportada
+        $ultimaActividad = $agenda->actividades->sortByDesc('fecha_reporte')->first();
+
+        $proximaFecha = $agenda->fecha_inicio_desplazamiento;
+
+        if ($ultimaActividad) {
+            // Si hay actividades, la próxima fecha es el día siguiente a la última reportada
+            $proximaFecha = $ultimaActividad->fecha_reporte->addDay()->format('Y-m-d');
+        }
+
+        return view('reportar_dia.show', compact('agenda', 'proximaFecha'));
     }
 }

@@ -22,9 +22,9 @@ class AgendaDesplazamiento extends Model
         'anio_contrato',
         'fecha_elaboracion',
         'fecha_vencimiento',
+        'clasificacion_informacion',
         'objetivo_contractual',
 
-        'municipio_destino',
         'ruta',
         'ciudad_destino',
         'entidad_empresa',
@@ -53,6 +53,11 @@ class AgendaDesplazamiento extends Model
     public function actividades()
     {
         return $this->hasMany(AgendaActividad::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
 
