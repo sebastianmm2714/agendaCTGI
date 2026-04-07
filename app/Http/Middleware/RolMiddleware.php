@@ -9,7 +9,7 @@ class RolMiddleware
 {
     public function handle($request, Closure $next, ...$roles)
     {
-        if (!Auth::check() || !in_array(Auth::user()->rol, $roles)) {
+        if (!Auth::check() || !in_array(Auth::user()->role, $roles)) {
             abort(403);
         }
 

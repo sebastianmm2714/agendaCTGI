@@ -1,10 +1,8 @@
 @extends('layouts.dashboard')
 
 @section('content')
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-
-<div class="container-fluid mt-3">
-    {{-- Header con Logo --}}
+<div class="container-fluid ">
+    {{-- Banner Institucional --}}
     <div class="card border shadow-sm mb-4">
         <div class="card-body d-flex align-items-center justify-content-center py-3 mt-3">
             <img src="{{ asset('images/sena/logo250.png') }}" alt="SENA" style="height: 60px; margin-right: 20px;">
@@ -13,143 +11,205 @@
     </div>
 
     {{-- Banner de Bienvenida --}}
-    <div class="card border-0 shadow bg-sena text-white mb-5 ">
-        <div class="card-body py-5 px-4">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4" style="background: linear-gradient(135deg, #39a900 0%, #2d8500 100%);">
+        <div class="card-body py-5 px-4 text-white">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h1 class="display-5 fw-bold mb-3 text-white">
-                        ¡Bienvenid@, {{ auth()->user()->name }}!
-                    </h1>
-                    <p class="lead mb-4 text-white">
-                        Usted ha ingresado con el rol de: <strong>{{ ucfirst(auth()->user()->rol) }}</strong>.
-                    </p>
+                    <h1 class="display-5 fw-bold mb-3">¡Bienvenid@, {{ auth()->user()->name }}!</h1>
+                    <p class="lead mb-0 text-white">Rol actual: <strong>{{ ucfirst(auth()->user()->role) }}</strong></p>
+                    @if(auth()->user()->role === 'administrador')
+                        <span class="badge bg-white text-success mt-2 fw-bold">Panel Personal: Solo se muestran sus agendas</span>
+                    @endif
                 </div>
                 <div class="col-md-4 text-center d-none d-md-block">
-                    <i class="fas fa-user-shield fa-5x text-white opacity-75"></i>
+                    <i class="fas fa-user-shield fa-5x opacity-75"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    <section class="mb-4">
-        <h4 class="fw-bold mb-3 ms-2 text-dark">
-            <i class="fas fa-rocket me-2 text-primary mt-3"></i>Accesos Rápidos
-        </h4>
-        <div class="row g-3 mt-3">
-            
-            {{-- BOTÓN INICIO (Todos) --}}
-            <div class="col-md-6 col-lg-3">
-                <a href="{{ route('inicio') }}" class="text-decoration-none">
-                    <div class="card h-100 border border-primary shadow-sm card-hover">
-                        <div class="card-body text-center p-4">
-                            <div class="bg-primary-light rounded-circle p-4 d-inline-flex align-items-center justify-content-center mb-3">
-                                <i class="fas fa-home fa-3x text-primary"></i>
-                            </div>
-                            <h5 class="card-title fw-bold text-dark mt-2">Inicio</h5>
-                            <p class="card-text text-muted small">Panel principal</p>
-                        </div>
+    {{-- LAS 3 TARJETAS DE CONTROL --}}
+    <div class="row g-4 mb-5">
+        {{-- Tarjeta Pendientes --}}
+        <div class="col-md-4">
+            <a href="{{ route('inicio', ['ver' => 'pendientes']) }}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-4 p-4 border-start border-primary border-5 {{ $filtro == 'pendientes' ? 'bg-primary bg-opacity-10' : 'bg-white' }}">
+                    <div class="d-flex justify-content-between text-primary">
+                        <i class="fas fa-clock fa-2x"></i>
+                        <span class="h3 fw-bold mb-0">{{ $stats['pendientes'] }}</span>
                     </div>
-                </a>
-            </div>
-
-            {{-- BOTÓN FORMULARIO (Solo Contratista) --}}
-            @if(auth()->user()->rol == 'user' || auth()->user()->rol == 'contratista')
-            <div class="col-md-6 col-lg-3">
-                <a href="{{ route('formulario') }}" class="text-decoration-none">
-                    <div class="card h-100 border border-success shadow-sm card-hover">
-                        <div class="card-body text-center p-4">
-                            <div class="bg-success-light rounded-circle p-4 d-inline-flex align-items-center justify-content-center mb-3">
-                                <i class="fas fa-file-signature fa-3x text-success"></i>
-                            </div>
-                            <h5 class="card-title fw-bold text-dark mt-2">Formulario</h5>
-                            <p class="card-text text-muted small">Registrar nueva agenda</p>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            @endif
-
-            {{-- BOTÓN POR AUTORIZAR (Dinámico para Coordinador o Subdirector) --}}
-            @if(auth()->user()->rol == 'supervisor_contrato' || auth()->user()->rol == 'ordenador_gasto' || auth()->user()->rol == 'viaticos')
-            <div class="col-md-6 col-lg-3">
-                @php 
-                    $rutaAutorizar = match(auth()->user()->rol) {
-                        'supervisor_contrato' => route('coordinador.index'),
-                        'viaticos' => route('viaticos.index'),
-                        'ordenador_gasto' => route('subdirector.index'),
-                        default => '#'
-                    };
-                    $total = match(auth()->user()->rol) {
-                        'supervisor_contrato' => $pendientesCoord,
-                        'viaticos' => $pendientesViaticos,
-                        'ordenador_gasto' => $pendientesSub,
-                        default => 0
-                    };
-                @endphp
-                
-                <a href="{{ $rutaAutorizar }}" class="text-decoration-none position-relative">
-                    <div class="card h-100 border border-warning shadow-sm card-hover">
-                        <div class="card-body text-center p-4">
-                            <div class="bg-warning-light rounded-circle p-4 d-inline-flex align-items-center justify-content-center mb-3">
-                                <i class="fas fa-signature fa-3x text-warning"></i>
-                                
-                                @if($total > 0)
-                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="margin-top: 20px; margin-left: -40px;">
-                                        {{ $total }}
-                                    </span>
-                                @endif
-                            </div>
-                            <h5 class="card-title fw-bold text-dark mt-2">Por Autorizar</h5>
-                            <p class="card-text text-muted small">Revisar y firmar agendas</p>
-                            <h4 class="fw-bold mb-0" style="font-size: 0.9rem;">{{ auth()->user()->rol == 'supervisor_contrato' ? 'Supervisor Contrato' : (auth()->user()->rol == 'ordenador_gasto' ? 'Ordenador Gasto' : 'Viáticos') }}</h4>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            @endif
-
-            {{-- BOTÓN REPORTES (Todos) --}}
-            <div class="col-md-6 col-lg-3">
-                @php
-                    $rutaBtnReportes = (auth()->user()->rol == 'user' || auth()->user()->rol == 'contratista') ? route('reportar-dia') : route('reportes');
-                @endphp
-                <a href="{{ $rutaBtnReportes }}" class="text-decoration-none">
-                    <div class="card h-100 border border-info shadow-sm card-hover">
-                        <div class="card-body text-center p-4">
-                            <div class="bg-info-light rounded-circle p-4 d-inline-flex align-items-center justify-content-center mb-3">
-                                <i class="fas fa-chart-bar fa-3x text-info"></i>
-                            </div>
-                            <h5 class="card-title fw-bold text-dark mt-2">Reportes</h5>
-                            <p class="card-text text-muted small">Estadísticas y descargas</p>
-                        </div>
-                    </div>
-                </a>
-            </div>
-
+                    <h5 class="fw-bold text-dark mt-2 mb-0">
+                        @if(auth()->user()->role == 'viaticos')
+                            Pendientes por revisar
+                        @elseif(auth()->user()->role == 'ordenador_gasto')
+                            Por autorizar
+                        @else
+                            Pendientes
+                        @endif
+                    </h5>
+                    <small class="text-muted">
+                        @if(auth()->user()->role == 'viaticos')
+                            Agendas autorizadas por coordinación
+                        @elseif(auth()->user()->role == 'ordenador_gasto')
+                            Esperando su firma digital
+                        @else
+                            Por revisión inicial
+                        @endif
+                    </small>
+                </div>
+            </a>
         </div>
-    </section>
+
+        {{-- Tarjeta Enviadas --}}
+        <div class="col-md-4">
+            <a href="{{ route('inicio', ['ver' => 'enviadas']) }}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-4 p-4 border-start border-success border-5 {{ $filtro == 'enviadas' ? 'bg-success bg-opacity-10' : 'bg-white' }}">
+                    <div class="d-flex justify-content-between text-success">
+                        <i class="fas fa-paper-plane fa-2x"></i>
+                        <span class="h3 fw-bold mb-0">{{ $stats['enviadas'] }}</span>
+                    </div>
+                    <h5 class="fw-bold text-dark mt-2 mb-0">
+                        @if(auth()->user()->role == 'viaticos')
+                            Aprobadas
+                        @elseif(auth()->user()->role == 'ordenador_gasto')
+                            Aprobadas
+                        @else
+                            Enviadas
+                        @endif
+                    </h5>
+                    <small class="text-muted">
+                        @if(auth()->user()->role == 'viaticos')
+                            Agendas ya liquidadas
+                        @elseif(auth()->user()->role == 'ordenador_gasto')
+                            Proceso finalizado
+                        @else
+                            En proceso de firmas
+                        @endif
+                    </small>
+                </div>
+            </a>
+        </div>
+
+        {{-- Tarjeta Devueltas --}}
+        <div class="col-md-4">
+            <a href="{{ route('inicio', ['ver' => 'devueltas']) }}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-4 p-4 border-start border-danger border-5 {{ $filtro == 'devueltas' ? 'bg-danger bg-opacity-10' : 'bg-white' }}">
+                    <div class="d-flex justify-content-between text-danger">
+                        <i class="fas fa-exclamation-circle fa-2x"></i>
+                        <span class="h3 fw-bold mb-0">{{ $stats['devueltas'] }}</span>
+                    </div>
+                    <h5 class="fw-bold text-dark mt-2 mb-0">Devueltas</h5>
+                    <small class="text-muted">Con observaciones</small>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    {{-- LISTADO DINÁMICO --}}
+    @if($filtro)
+    <div class="card border-0 shadow-sm rounded-4 animate__animated animate__fadeIn">
+        <div class="card-header bg-white border-0 p-4 d-flex justify-content-between align-items-center border-bottom">
+            <h4 class="fw-bold mb-0 text-dark">Viendo: <span class="text-capitalize">{{ $filtro }}</span></h4>
+            <a href="{{ route('inicio') }}" class="btn btn-light btn-sm rounded-pill px-3 border text-muted">Cerrar</a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">CONTRATISTA</th>
+                            @if($filtro == 'devueltas') <th>MOTIVO DE ERROR</th> @endif
+                            <th class="text-center">PDF</th>
+                            <th class="text-center">GESTIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($agendas as $agenda)
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark text-uppercase fs-6">{{ $agenda->user->name ?? 'N/A' }}</div>
+                                <div class="small text-muted">ID Agenda: #{{ $agenda->id }}</div>
+                            </td>
+
+                            @if($filtro == 'devueltas')
+                            <td>
+                                <div class="text-danger small fw-bold">
+                                    <i class="fas fa-comment-dots me-1"></i> {{ Str::limit($agenda->observaciones_finanzas, 80) }}
+                                </div>
+                            </td>
+                            @endif
+
+                            <td class="text-center">
+                                <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank" class="btn btn-link text-danger p-0">
+                                    <i class="fas fa-file-pdf fa-2x"></i>
+                                </a>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn {{ (auth()->user()->role === 'supervisor_contrato' && $agenda->estado && $agenda->estado->nombre == 'ENVIADA' && !$agenda->observaciones_finanzas) ? 'btn-dark' : 'btn-secondary' }} btn-sm rounded-pill px-4 fw-bold shadow-sm" 
+                                    data-bs-toggle="modal" data-bs-target="#modalGestion{{ $agenda->id }}">
+                                    Ver Info
+                                </button>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="4" class="text-center p-5 text-muted">No hay registros para mostrar.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
 
+{{-- MODALES DINÁMICOS --}}
+@foreach($agendas as $agenda)
+<div class="modal fade" id="modalGestion{{ $agenda->id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 bg-light p-4">
+                <h5 class="fw-bold mb-0">Detalles de la Agenda #{{ $agenda->id }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+
+                <div class="modal-body p-4">
+                    <div class="mb-4 p-3 bg-light border rounded-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <i class="fas fa-file-pdf fa-2x text-danger me-2"></i>
+                            <span class="fw-bold small text-dark">DOCUMENTO PDF</span>
+                        </div>
+                        <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank" class="btn btn-sm btn-danger rounded-pill px-4 shadow-sm fw-bold">
+                            ABRIR ARCHIVO
+                        </a>
+                    </div>
+
+                    <div class="text-center mb-4">
+                        <label class="small text-muted fw-bold d-block">CONTRATISTA REGISTRADO</label>
+                        <p class="fs-4 fw-bold text-dark text-uppercase mb-0">{{ $agenda->user->name ?? 'N/A' }}</p>
+                    </div>
+
+                    {{-- Gestión de Observaciones (Solo lectura para Supervisor en Dashboard) --}}
+                    @if($agenda->observaciones_finanzas)
+                        <div class="p-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded-3">
+                            <label class="small fw-bold text-warning-emphasis">NOTA DE REVISIÓN:</label>
+                            <p class="mb-0 small text-dark text-italic">"{{ $agenda->observaciones_finanzas }}"</p>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="modal-footer border-0 p-4 pt-0 d-flex justify-content-center">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+        </div>
+    </div>
+</div>
+@endforeach
+
 <style>
-    .card-hover:hover {
-        transform: translateY(-5px);
-        transition: all 0.3s ease;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-    }
-    .bg-success-light {
-        background-color: rgba(57, 169, 0, 0.1);
-    }
-    .bg-primary-light {
-        background-color: rgba(13, 110, 253, 0.1);
-    }
-    .bg-warning-light {
-        background-color: rgba(255, 193, 7, 0.1);
-    }
-    .bg-info-light {
-        background-color: rgba(13, 202, 240, 0.1);
-    }
-    .bg-sena {
-        background-color: #39a900 !important;
-    }
+    .card { transition: all 0.2s ease; }
+    .text-decoration-none:hover .card { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
 </style>
 @endsection

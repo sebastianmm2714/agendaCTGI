@@ -20,5 +20,5 @@ Route::get('/destinos', function () {
                 
                 }),
             ];
-        });
+        })->values();
 });

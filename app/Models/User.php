@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,36 +11,50 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
-        'rol'
+        'tipo_documento',
+        'numero_documento',
+        'numero_contrato',
+        'anio_contrato',
+        'fecha_vencimiento',
+        'objeto_contractual',
+        'firma',
+        'salario_honorarios',
+        'numero_cuenta_tipo',
+        'categoria_personal_id',
+        'supervisor_id',
+        'ordenador_id',
+        'role',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'salario_honorarios' => 'decimal:2',
     ];
+
+    public function categoria()
+    {
+        return $this->belongsTo(CategoriaPersonal::class, 'categoria_personal_id');
+    }
+
+    public function supervisor()
+    {
+        return $this->belongsTo(Funcionario::class, 'supervisor_id');
+    }
+
+    public function ordenador()
+    {
+        return $this->belongsTo(Funcionario::class, 'ordenador_id');
+    }
 
     public function agendas()
     {

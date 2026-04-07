@@ -1,80 +1,98 @@
 @extends('layouts.dashboard')
 
 @section('content')
-<div class="container py-4">
+<div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold">Bandeja de Subdirección (Ordenador de Gasto)</h2>
-        <span class="badge bg-primary">{{ $agendas->count() }} Pendientes</span>
+        <div>
+            <h2 class="fw-bold text-dark mb-0">Bandeja de Subdirección (Ordenador de Gasto)</h2>
+            <p class="text-muted">Gestione la autorización final y firma de agendas de desplazamiento</p>
+        </div>
+        <span class="badge bg-dark px-3 py-2 fs-6 shadow-sm">Total: {{ $agendas->count() }}</span>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success border-0 shadow-sm">{{ session('success') }}</div>
-    @endif
+    {{-- TARJETAS FILTRADORAS --}}
+    <div class="row mb-4 nav" id="pills-tab" role="tablist">
+        {{-- CARD: POR AUTORIZAR --}}
+        <div class="col-md-4 mb-3" role="presentation">
+            <div class="card border-0 shadow-sm bg-primary bg-opacity-10 text-primary p-3 h-100 cursor-pointer active" 
+                 id="tab-pendientes" data-bs-toggle="pill" data-bs-target="#pendientes" type="button" role="tab" style="cursor: pointer; transition: 0.3s;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 small fw-bold text-uppercase">Por Autorizar</p>
+                        <h2 class="mb-0 fw-bold">{{ $agendas->filter(fn($a) => $a->estado->nombre == 'APROBADA_VIATICOS')->count() }}</h2>
+                    </div>
+                    <i class="fas fa-signature fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
 
-    <div class="card shadow-sm border-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th>Contratista</th>
-                        <th>Ruta / Destino</th>
-                        <th>Fecha Inicio</th>
-                        <th class="text-center">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($agendas as $agenda)
-                    <tr>
-                        <td>
-                            <div class="fw-bold">{{ $agenda->nombre_completo }}</div>
-                            <small class="text-muted">{{ $agenda->numero_documento }}</small>
-                        </td>
-                        <td>{{ $agenda->ciudad_destino }}</td>
-                        <td>{{ $agenda->fecha_inicio_desplazamiento }}</td>
-                        <td class="text-center">
-                            <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank" class="btn btn-sm btn-outline-danger">
-                                <i class="fas fa-file-pdf"></i> Revisar PDF
-                            </a>
+        {{-- CARD: APROBADAS --}}
+        <div class="col-md-4 mb-3" role="presentation">
+            <div class="card border-0 shadow-sm bg-success bg-opacity-10 text-success p-3 h-100 cursor-pointer" 
+                 id="tab-aprobadas" data-bs-toggle="pill" data-bs-target="#aprobadas" type="button" role="tab" style="cursor: pointer; transition: 0.3s;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 small fw-bold text-uppercase">Aprobadas / Finalizadas</p>
+                        <h2 class="mb-0 fw-bold">{{ $agendas->filter(fn($a) => $a->estado->nombre == 'APROBADA')->count() }}</h2>
+                    </div>
+                    <i class="fas fa-check-double fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
 
-                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#modalFirma{{ $agenda->id }}">
-                                <i class="fas fa-signature"></i> Firmar Ahora
-                            </button>
-
-                            <div class="modal fade" id="modalFirma{{ $agenda->id }}" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <form action="{{ route('subdirector.autorizar', $agenda->id) }}" method="POST" enctype="multipart/form-data">
-                                            @csrf
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Aprobación de Ordenador de Gasto</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body text-start">
-                                                <p>Al firmar, usted autoriza el desplazamiento de <strong>{{ $agenda->nombre_completo }}</strong>.</p>
-                                                <div class="mb-3">
-                                                    <label class="form-label fw-bold">Subir imagen de su firma:</label>
-                                                    <input type="file" name="firma_ordenador" class="form-control" accept="image/*" required>
-                                                    <small class="text-muted">Formato: PNG o JPG (Fondo blanco o transparente recomendado)</small>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                                <button type="submit" class="btn btn-primary">Confirmar y Firmar</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="4" class="text-center py-4 text-muted">No hay agendas pendientes por firma de subdirección.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+        {{-- CARD: DEVUELTAS --}}
+        <div class="col-md-4 mb-3" role="presentation">
+            <div class="card border-0 shadow-sm bg-danger bg-opacity-10 text-danger p-3 h-100 cursor-pointer" 
+                 id="tab-devueltas" data-bs-toggle="pill" data-bs-target="#devueltas" type="button" role="tab" style="cursor: pointer; transition: 0.3s;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 small fw-bold text-uppercase">Devueltas / Corrección</p>
+                        <h2 class="mb-0 fw-bold">{{ $agendas->filter(fn($a) => $a->estado->nombre == 'CORRECCIÓN')->count() }}</h2>
+                    </div>
+                    <i class="fas fa-exclamation-circle fa-2x opacity-50"></i>
+                </div>
+            </div>
         </div>
     </div>
+
+    {{-- CONTENIDO DE LAS TABLAS --}}
+    <div class="tab-content" id="pills-tabContent">
+        
+        {{-- VISTA: PENDIENTES --}}
+        <div class="tab-pane fade show active" id="pendientes" role="tabpanel">
+            @include('subdirector.partials.table', [
+                'lista' => $agendas->filter(fn($a) => $a->estado->nombre == 'APROBADA_VIATICOS'), 
+                'tipo' => 'pendientes'
+            ])
+        </div>
+
+        {{-- VISTA: APROBADAS --}}
+        <div class="tab-pane fade" id="aprobadas" role="tabpanel">
+            @include('subdirector.partials.table', [
+                'lista' => $agendas->filter(fn($a) => $a->estado->nombre == 'APROBADA'), 
+                'tipo' => 'aprobadas'
+            ])
+        </div>
+
+        {{-- VISTA: DEVUELTAS --}}
+        <div class="tab-pane fade" id="devueltas" role="tabpanel">
+            @include('subdirector.partials.table', [
+                'lista' => $agendas->filter(fn($a) => $a->estado->nombre == 'CORRECCIÓN'), 
+                'tipo' => 'devueltas'
+            ])
+        </div>
+
+    </div>
 </div>
+
+<style>
+    .card.active {
+        box-shadow: 0 0 0 3px currentColor !important;
+        transform: scale(1.02);
+    }
+    .cursor-pointer:hover {
+        transform: translateY(-5px);
+        filter: brightness(0.95);
+    }
+</style>
 @endsection

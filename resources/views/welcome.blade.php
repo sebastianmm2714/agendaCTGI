@@ -14,9 +14,9 @@
                 <div class="col-12 col-lg-6 bg-light d-flex align-items-center justify-content-center">
                     <div class="text-center p-4 p-lg-5">
                         <img src="{{ asset('images/sena/logo250.png') }}" alt="SENA" class="img-fluid w-75 mb-3">
-                        <h2 class="h4 fw-bold mb-2 text-success">Llaves CTGI</h2>
+                        <h2 class="h4 fw-bold mb-2 text-success">Agenda CTGI</h2>
                         <p class="text-muted mb-0">
-                            Gestiona ambientes, instructores y prestamos en un solo lugar.
+                            Gestiona tus agendas de desplazamiento de manera eficiente.
                         </p>
                     </div>
                 </div>

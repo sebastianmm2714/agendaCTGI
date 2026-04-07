@@ -13,53 +13,65 @@ class AgendaDesplazamiento extends Model
 
     protected $fillable = [
         'user_id',
-        'nombre_completo',
-        'tipo_documento',
-        'numero_documento',
-        'cargo',
-
-        'numero_contrato',
-        'anio_contrato',
+        'clasificacion_id',
+        'estado_id',
         'fecha_elaboracion',
-        'fecha_vencimiento',
-        'clasificacion_informacion',
-        'objetivo_contractual',
-
         'ruta',
-        'ciudad_destino',
         'entidad_empresa',
         'contacto',
-        'fecha_inicio_desplazamiento',
-        'fecha_fin_desplazamiento',
         'objetivo_desplazamiento',
-
-        'direccion_general',
-        'dependencia_centro',
-
-        'obligaciones_contrato',
-
-        'firma_contratista',
-        'firma_supervisor',
-        'firma_ordenador',
-
-        'estado'
+        'regional',
+        'centro',
+        'destinos',
+        'fecha_inicio',
+        'fecha_fin',
+        'valor_viaticos',
+        'observaciones_finanzas',
+        'cdp',
+        'valor_intermunicipal',
+        'supervisor_id',
+        'ordenador_id',
     ];
-
+    
     protected $casts = [
-        'obligaciones_contrato' => 'array',
+        'fecha_elaboracion' => 'date',
+        'fecha_inicio' => 'date',
+        'fecha_fin' => 'date',
+        'destinos' => 'array',
     ];
-
-
-    public function actividades()
-    {
-        return $this->hasMany(AgendaActividad::class);
-    }
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+    public function clasificacion()
+    {
+        return $this->belongsTo(ClasificacionInformacion::class, 'clasificacion_id');
+    }
 
+    public function estado()
+    {
+        return $this->belongsTo(EstadoAgenda::class, 'estado_id');
+    }
 
+    public function obligaciones()
+    {
+        return $this->belongsToMany(ObligacionContrato::class, 'agenda_obligaciones', 'agenda_id', 'obligacion_id');
+    }
+
+    public function actividades()
+    {
+        return $this->hasMany(Actividad::class, 'agenda_id');
+    }
+
+    public function supervisor()
+    {
+        return $this->belongsTo(Funcionario::class, 'supervisor_id');
+    }
+
+    public function ordenador()
+    {
+        return $this->belongsTo(Funcionario::class, 'ordenador_id');
+    }
 }

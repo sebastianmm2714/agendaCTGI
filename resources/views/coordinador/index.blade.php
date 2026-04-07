@@ -1,85 +1,98 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="container-fluid">
-        <h2 class="fw-bold mb-4">Agendas Pendientes por Autorizar</h2>
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-0">Panel de Autorización - Coordinación</h2>
+            <p class="text-muted">Gestione las firmas y revisiones de su equipo de trabajo</p>
+        </div>
+        <span class="badge bg-dark px-3 py-2 fs-6 shadow-sm">Total: {{ $agendas->count() }}</span>
+    </div>
 
-        @if(session('alerta_exitosa'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('alerta_exitosa') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    {{-- TARJETAS FILTRADORAS --}}
+    <div class="row mb-4 nav" id="pills-tab" role="tablist">
+        {{-- CARD: POR FIRMAR --}}
+        <div class="col-md-4 mb-3" role="presentation">
+            <div class="card border-0 shadow-sm bg-primary bg-opacity-10 text-primary p-3 h-100 cursor-pointer active" 
+                 id="tab-pendientes" data-bs-toggle="pill" data-bs-target="#pendientes" type="button" role="tab" style="cursor: pointer; transition: 0.3s;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 small fw-bold text-uppercase">Por Firmar / Revisar</p>
+                        <h2 class="mb-0 fw-bold">{{ $agendas->filter(fn($a) => $a->estado->nombre == 'ENVIADA')->count() }}</h2>
+                    </div>
+                    <i class="fas fa-signature fa-2x opacity-50"></i>
+                </div>
             </div>
-        @endif
+        </div>
 
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-0">
-                <table class="table table-hover mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="px-4 py-3">Contratista</th>
-                            <th class="py-3">Municipio</th>
-                            <th class="py-3 text-center">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($agendas as $agenda)
-                            <tr>
-                                <td class="px-4 fw-bold">{{ $agenda->nombre_completo }}</td>
-                                <td>{{ $agenda->ciudad_destino }}</td>
-                                <td class="text-center">
-                                    <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank"
-                                        class="btn btn-outline-primary btn-sm me-2">
-                                        <i class="fas fa-eye me-1"></i> Revisar PDF
-                                    </a>
+        {{-- CARD: ENVIADAS A VIÁTICOS --}}
+        <div class="col-md-4 mb-3" role="presentation">
+            <div class="card border-0 shadow-sm bg-success bg-opacity-10 text-success p-3 h-100 cursor-pointer" 
+                 id="tab-enviadas" data-bs-toggle="pill" data-bs-target="#enviadas" type="button" role="tab" style="cursor: pointer; transition: 0.3s;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 small fw-bold text-uppercase">Enviadas a Viáticos</p>
+                        <h2 class="mb-0 fw-bold">{{ $agendas->filter(fn($a) => in_array($a->estado->nombre, ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA_ORDENADOR', 'APROBADA']))->count() }}</h2>
+                    </div>
+                    <i class="fas fa-paper-plane fa-2x opacity-50"></i>
+                </div>
+            </div>
+        </div>
 
-                                    <button class="btn btn-success btn-sm" data-bs-toggle="modal"
-                                        data-bs-target="#modalFirma{{ $agenda->id }}">
-                                        <i class="fas fa-pen-nib me-1"></i> Firmar y Autorizar
-                                    </button>
-
-                                    <div class="modal fade" id="modalFirma{{ $agenda->id }}" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <form action="{{ route('agenda.autorizar', $agenda->id) }}" method="POST"
-                                                    enctype="multipart/form-data">
-                                                    @csrf
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Subir Firma de Autorización</h5>
-                                                        <button type="button" class="btn-close"
-                                                            data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <div class="modal-body text-start">
-                                                        <p class="mb-0 text-muted small">Destino:
-                                                            <strong>{{ $agenda->ciudad_destino }}</strong>
-                                                        </p>
-                                                        <p class="text-muted small">Cargue la imagen de su firma para autorizar
-                                                            la agenda de <strong>{{ $agenda->nombre_completo }}</strong>.</p>
-                                                        <div class="mb-3">
-                                                            <label class="form-label fw-bold">Archivo de firma (PNG o
-                                                                JPG)</label>
-                                                            <input type="file" name="firma_archivo" class="form-control"
-                                                                accept="image/*" required>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary"
-                                                            data-bs-dismiss="modal">Cancelar</button>
-                                                        <button type="submit" class="btn btn-success">Autorizar Ahora</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="3" class="text-center py-5 text-muted">No hay agendas esperando su firma.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+        {{-- CARD: DEVUELTAS POR VIÁTICOS --}}
+        <div class="col-md-4 mb-3" role="presentation">
+            <div class="card border-0 shadow-sm bg-danger bg-opacity-10 text-danger p-3 h-100 cursor-pointer" 
+                 id="tab-devueltas" data-bs-toggle="pill" data-bs-target="#devueltas" type="button" role="tab" style="cursor: pointer; transition: 0.3s;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 small fw-bold text-uppercase">Devueltas / Corrección</p>
+                        <h2 class="mb-0 fw-bold">{{ $agendas->filter(fn($a) => $a->estado->nombre == 'CORRECCIÓN')->count() }}</h2>
+                    </div>
+                    <i class="fas fa-exclamation-circle fa-2x opacity-50"></i>
+                </div>
             </div>
         </div>
     </div>
+
+    {{-- CONTENIDO DE LAS TABLAS --}}
+    <div class="tab-content" id="pills-tabContent">
+        
+        {{-- VISTA: PENDIENTES (Nuevas solicitudes) --}}
+        <div class="tab-pane fade show active" id="pendientes" role="tabpanel">
+            @include('coordinador.partials.table', [
+                'lista' => $agendas->filter(fn($a) => $a->estado->nombre == 'ENVIADA'), 
+                'tipo' => 'pendientes'
+            ])
+        </div>
+
+        {{-- VISTA: ENVIADAS (Ya firmadas por el coordinador) --}}
+        <div class="tab-pane fade" id="enviadas" role="tabpanel">
+            @include('coordinador.partials.table', [
+                'lista' => $agendas->filter(fn($a) => in_array($a->estado->nombre, ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA_ORDENADOR', 'APROBADA'])), 
+                'tipo' => 'enviadas'
+            ])
+        </div>
+
+        {{-- VISTA: DEVUELTAS (Las que Viáticos rechazó) --}}
+        <div class="tab-pane fade" id="devueltas" role="tabpanel">
+            @include('coordinador.partials.table', [
+                'lista' => $agendas->filter(fn($a) => $a->estado->nombre == 'CORRECCIÓN'), 
+                'tipo' => 'devueltas'
+            ])
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .card.active {
+        box-shadow: 0 0 0 3px currentColor !important;
+        transform: scale(1.02);
+    }
+    .cursor-pointer:hover {
+        transform: translateY(-5px);
+        filter: brightness(0.95);
+    }
+</style>
 @endsection

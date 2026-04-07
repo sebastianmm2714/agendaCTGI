@@ -43,7 +43,16 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Viaticos',
                 'password' => Hash::make('12345678'),
-                'rol' => 'viaticos'
+                'role' => 'viaticos'
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'funcionario@sena.edu.co'],
+            [
+                'name' => 'Funcionario',
+                'password' => Hash::make('12345678'),
+                'role' => 'funcionario'
             ]
         );
     }

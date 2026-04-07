@@ -1,0 +1,3 @@
+nombre,email,tipo_documento,numero_documento,numero_contrato,anio_contrato,fecha_vencimiento,objeto_contractual,salario_honorarios,categoria_personal,supervisor_nombre,ordenador_nombre
+ADMINISTRADOR,admin@sena.edu.co,CC,123456,CONT-001,2026,2026-12-31,ADMINISTRACION DE SISTEMAS,5000000,APOYOS ADM Y GEST,MARIA HELENA JIMENEZ,LUIS FERNANDO MALDONADO
+TEST USER,user@sena.edu.co,CC,789101,CONT-002,2026,2026-12-31,INSTRUCCION TECNICA,4500000,INSTRUCTOR,MARIA HELENA JIMENEZ,LUIS FERNANDO MALDONADO

@@ -18,11 +18,10 @@ class DepartamentosSeeder extends Seeder
             $codigo = trim($row[1]);
             $nombre = trim($row[2]);
 
-            $departamentos[$codigo] = [
-                'codigo_dane' => $codigo,
-                'nombre' => $nombre,
-            ];
+            DB::table('departamentos')->updateOrInsert(
+            ['codigo_dane' => $codigo],
+            ['nombre' => $nombre, 'updated_at' => now(), 'created_at' => now()]
+            );
         }
-        DB::table('departamentos')->insert(array_values($departamentos));
     }
 }
