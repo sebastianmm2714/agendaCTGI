@@ -69,9 +69,10 @@
 
                                 <a href="{{ route('agenda.pdf', $item->id) }}" 
                                    target="_blank" 
-                                   class="btn btn-sm btn-light border rounded-pill px-2 shadow-sm"
-                                   title="Ver PDF">
-                                    <i class="fas fa-file-pdf text-danger"></i>
+                                   class="btn btn-dark btn-sm rounded-pill shadow-sm fw-bold d-flex align-items-center gap-1"
+                                   style="min-width:70px; px-2;"
+                                   title="Vista previa PDF">
+                                    <i class="fas fa-eye"></i> <span style="font-size:0.78rem;">PDF</span>
                                 </a>
                             </div>
 
@@ -81,7 +82,7 @@
                                 <div class="modal fade" id="modalFirma{{ $item->id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content border-0 shadow rounded-4 text-start">
-                                            <form action="{{ route('ordenador_gasto.autorizar', $item->id) }}" method="POST">
+                                            <form action="{{ route('ordenador_gasto.autorizar', $item->id) }}" method="POST" class="form-autorizar-agenda">
                                                 @csrf
                                                 <div class="modal-header border-0 bg-light rounded-top-4 py-3">
                                                     <h5 class="modal-title fw-bold text-dark">Autorización Final</h5>

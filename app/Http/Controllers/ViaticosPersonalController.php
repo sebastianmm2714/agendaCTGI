@@ -11,12 +11,33 @@ class ViaticosPersonalController extends Controller
     /**
      * Muestra la lista de personal (contratistas y funcionarios)
      */
-    public function index()
+    public function index(Request $request)
     {
+        $perPage = (int) $request->get('per_page', 5);
+        $search  = $request->get('search');
+        $role    = $request->get('role');
+        $vinculacion = $request->get('vinculacion');
+
         $users = User::whereIn('role', ['contratista', 'supervisor_contrato', 'ordenador_gasto', 'viaticos'])
             ->with(['categoria', 'supervisor', 'ordenador'])
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($sq) use ($search) {
+                    $sq->where('name', 'like', "%$search%")
+                       ->orWhere('numero_documento', 'like', "%$search%")
+                       ->orWhere('email', 'like', "%$search%");
+                });
+            })
+            ->when($role, function ($q) use ($role) {
+                $q->where('role', $role);
+            })
+            ->when($vinculacion, function ($q) use ($vinculacion) {
+                $q->whereHas('categoria', function ($cq) use ($vinculacion) {
+                    $cq->where('nombre', $vinculacion);
+                });
+            })
             ->orderBy('name')
-            ->get();
+            ->paginate($perPage)
+            ->appends($request->all());
 
         $categorias = \App\Models\CategoriaPersonal::orderBy('nombre')->get();
         $supervisores = \App\Models\Funcionario::where('tipo', 'SUPERVISOR')->orderBy('nombre')->get();
@@ -24,6 +45,7 @@ class ViaticosPersonalController extends Controller
 
         return view('viaticos.personal.index', compact('users', 'categorias', 'supervisores', 'ordenadores'));
     }
+
 
     /**
      * Almacena un nuevo registro de personal

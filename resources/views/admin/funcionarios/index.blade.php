@@ -13,18 +13,38 @@
     </div>
 
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5">
-        <div class="bg-white border-0 py-3 px-4 d-flex align-items-center justify-content-between border-bottom">
-            <div class="d-flex align-items-center gap-3 flex-grow-1 me-4">
-                <h5 class="fw-bold mb-0 text-dark d-none d-md-block">Listado</h5>
-                <div class="input-group input-group-sm" style="max-width: 400px;">
-                    <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
-                    <input type="text" id="searchInput" class="form-control bg-light border-0" placeholder="Buscar por nombre, cargo o tipo...">
+        <div class="card-header bg-white border-bottom py-4 px-4">
+            <form action="{{ route('admin.funcionarios.index') }}" method="GET" id="searchForm">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-3">
+                        <h5 class="fw-bold mb-0 text-dark d-none d-md-block">Listado de Funcionarios</h5>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="input-group shadow-sm rounded-pill overflow-hidden">
+                            <span class="input-group-text bg-white border-end-0 ps-3">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" name="search" value="{{ request('search') }}" 
+                                class="form-control border-start-0" 
+                                placeholder="Buscar por nombre, cargo o tipo...">
+                            <button type="submit" class="btn btn-info px-4 fw-bold">Buscar</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-center gap-2 justify-content-end">
+                        <select name="per_page" class="form-select rounded-pill w-auto shadow-sm" onchange="this.form.submit()">
+                            <option value="5" {{ request('per_page') == 5 ? 'selected' : '' }}>5</option>
+                            <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10</option>
+                            <option value="20" {{ request('per_page') == 20 ? 'selected' : '' }}>20</option>
+                            <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                        </select>
+                        <button type="button" class="btn btn-info rounded-pill px-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCrearFuncionario">
+                            <i class="fas fa-plus me-1"></i> Nuevo
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <button class="btn btn-info btn-sm rounded-pill px-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCrearFuncionario">
-                <i class="fas fa-plus me-1"></i> Nuevo Funcionario
-            </button>
+            </form>
         </div>
+
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -148,11 +168,71 @@
                         </tr>
                         @endforelse
                     </tbody>
-                </table>
+                @if($funcionarios->total() > $funcionarios->perPage())
+                <div class="card-footer bg-white border-top-0 py-4 d-flex justify-content-center">
+                    <div class="pagination-container shadow-sm p-1 bg-light rounded-pill d-inline-block custom-pagination">
+                        {{ $funcionarios->links() }}
+                    </div>
+                </div>
+                @endif
+                <div class="card-footer bg-light border-0 py-3 px-4">
+                    <p class="mb-0 small text-muted">
+                        <i class="fas fa-info-circle me-1 text-primary"></i> 
+                        Total: <strong>{{ $funcionarios->total() }}</strong> funcionarios registrados.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    /* Ocultar texto por defecto del paginador */
+    .custom-pagination nav > div:first-child,
+    .custom-pagination nav div.d-none.flex-sm-fill > div:first-child,
+    .custom-pagination nav p.text-muted {
+        display: none !important;
+    }
+    
+    .custom-pagination nav > div.d-none.flex-sm-fill > div {
+        display: flex !important;
+        justify-content: center !important;
+    }
+
+    /* Diseño circular Sena */
+    .custom-pagination .pagination {
+        margin-bottom: 0 !important;
+        gap: 0.3rem;
+    }
+    .custom-pagination .page-item .page-link {
+        border-radius: 50% !important;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        color: #4b5563;
+        font-weight: 600;
+        background: transparent;
+        transition: all 0.2s ease;
+    }
+    .custom-pagination .page-item:not(.active) .page-link:hover {
+        background: #f3f4f6;
+        color: #39a900;
+    }
+    .custom-pagination .page-item.active .page-link {
+        background-color: #39a900 !important;
+        color: white !important;
+        box-shadow: 0 4px 6px -1px rgba(57, 169, 0, 0.4);
+    }
+    
+    .custom-pagination .page-item.disabled .page-link {
+        color: #cbd5e1;
+        background: transparent;
+    }
+</style>
+
 
 {{-- MODAL CREAR FUNCIONARIO --}}
 <div class="modal fade" id="modalCrearFuncionario" tabindex="-1" aria-hidden="true">
@@ -214,17 +294,3 @@
 </div>
 @endsection
 
-@push('scripts')
-<script>
-$(document).ready(function() {
-    // Filtro de búsqueda en tiempo real
-    $("#searchInput").on("keyup", function() {
-        var value = $(this).val().toLowerCase();
-        $("table tbody tr").filter(function() {
-            var text = $(this).text().toLowerCase();
-            $(this).toggle(text.indexOf(value) > -1);
-        });
-    });
-});
-</script>
-@endpush

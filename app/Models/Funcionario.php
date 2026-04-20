@@ -28,4 +28,9 @@ class Funcionario extends Model
     {
         return $this->hasMany(User::class, 'ordenador_id');
     }
+
+    public function agendas()
+    {
+        return $this->hasMany(AgendaDesplazamiento::class, 'supervisor_id');
+    }
 }

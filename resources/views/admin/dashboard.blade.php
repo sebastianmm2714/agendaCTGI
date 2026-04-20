@@ -14,84 +14,129 @@
     </div>
 
     {{-- Tarjetas de Estadísticas --}}
+    @php $currentStatus = request('status'); @endphp
     <div class="row g-4 mb-5 animate__animated animate__fadeInUp">
         <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 filter-card" data-filter="all" style="cursor: pointer; transition: transform 0.2s;">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="bg-primary bg-opacity-10 p-3 rounded-3">
-                            <i class="fas fa-file-invoice fa-lg text-primary"></i>
+            <a href="{{ route('admin.dashboard', ['status' => 'all']) }}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 filter-card 
+                    {{ $currentStatus == 'all' ? 'filter-card-active' : ($currentStatus && $currentStatus != 'all' ? 'filter-card-inactive' : '') }}" 
+                    style="transition: all 0.3s ease; border-bottom: 4px solid var(--bs-primary) !important;">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="bg-primary bg-opacity-10 p-3 rounded-3 text-primary">
+                                <i class="fas fa-file-invoice fa-lg"></i>
+                            </div>
+                            <span class="h3 fw-bold mb-0 text-dark">{{ $stats['total_agendas'] }}</span>
                         </div>
-                        <span class="h3 fw-bold mb-0 text-dark">{{ $stats['total_agendas'] }}</span>
+                        <h6 class="fw-bold text-muted text-uppercase small mb-1">Total Agendas</h6>
+                        <p class="text-dark fw-bold mb-0 opacity-75">Registradas en el sistema</p>
                     </div>
-                    <h6 class="fw-bold text-muted text-uppercase small mb-1">Total Agendas</h6>
-                    <p class="text-dark fw-bold mb-0">Registradas en el sistema</p>
                 </div>
-                <div class="bg-primary opacity-10" style="height: 4px;"></div>
-            </div>
+            </a>
         </div>
 
         <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 filter-card" data-filter="proceso" style="cursor: pointer; transition: transform 0.2s;">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="bg-success bg-opacity-10 p-3 rounded-3">
-                            <i class="fas fa-paper-plane fa-lg text-success"></i>
+            <a href="{{ route('admin.dashboard', ['status' => 'proceso']) }}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 filter-card 
+                    {{ $currentStatus == 'proceso' ? 'filter-card-active' : ($currentStatus ? 'filter-card-inactive' : '') }}" 
+                    style="transition: all 0.3s ease; border-bottom: 4px solid var(--bs-success) !important;">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="bg-success bg-opacity-10 p-3 rounded-3 text-success">
+                                <i class="fas fa-paper-plane fa-lg"></i>
+                            </div>
+                            <span class="h3 fw-bold mb-0 text-dark">{{ $stats['enviadas'] }}</span>
                         </div>
-                        <span class="h3 fw-bold mb-0 text-dark">{{ $stats['enviadas'] }}</span>
+                        <h6 class="fw-bold text-muted text-uppercase small mb-1">En Proceso</h6>
+                        <p class="text-success fw-bold mb-0 opacity-75">Agendas enviadas/liquidadas</p>
                     </div>
-                    <h6 class="fw-bold text-muted text-uppercase small mb-1">En Proceso</h6>
-                    <p class="text-success fw-bold mb-0">Agendas enviadas/liquidadas</p>
                 </div>
-                <div class="bg-success opacity-10" style="height: 4px;"></div>
-            </div>
+            </a>
         </div>
 
         <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 filter-card" data-filter="DEVUELTA" style="cursor: pointer; transition: transform 0.2s;">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="bg-danger bg-opacity-10 p-3 rounded-3">
-                            <i class="fas fa-undo fa-lg text-danger"></i>
+            <a href="{{ route('admin.dashboard', ['status' => 'DEVUELTA']) }}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 filter-card 
+                    {{ $currentStatus == 'DEVUELTA' ? 'filter-card-active' : ($currentStatus ? 'filter-card-inactive' : '') }}" 
+                    style="transition: all 0.3s ease; border-bottom: 4px solid var(--bs-danger) !important;">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="bg-danger bg-opacity-10 p-3 rounded-3 text-danger">
+                                <i class="fas fa-undo fa-lg"></i>
+                            </div>
+                            <span class="h3 fw-bold mb-0 text-dark">{{ $stats['devueltas'] }}</span>
                         </div>
-                        <span class="h3 fw-bold mb-0 text-dark">{{ $stats['devueltas'] }}</span>
+                        <h6 class="fw-bold text-muted text-uppercase small mb-1">Devueltas</h6>
+                        <p class="text-danger fw-bold mb-0 opacity-75">Requieren corrección</p>
                     </div>
-                    <h6 class="fw-bold text-muted text-uppercase small mb-1">Devueltas</h6>
-                    <p class="text-danger fw-bold mb-0">Requieren corrección</p>
                 </div>
-                <div class="bg-danger opacity-10" style="height: 4px;"></div>
-            </div>
+            </a>
         </div>
 
         <div class="col-xl-3 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 filter-card" data-filter="APROBADA" style="cursor: pointer; transition: transform 0.2s;">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="bg-info bg-opacity-10 p-3 rounded-3">
-                            <i class="fas fa-check-double fa-lg text-info"></i>
+            <a href="{{ route('admin.dashboard', ['status' => 'APROBADA']) }}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 filter-card 
+                    {{ $currentStatus == 'APROBADA' ? 'filter-card-active' : ($currentStatus ? 'filter-card-inactive' : '') }}" 
+                    style="transition: all 0.3s ease; border-bottom: 4px solid var(--bs-info) !important;">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="bg-info bg-opacity-10 p-3 rounded-3 text-info">
+                                <i class="fas fa-check-double fa-lg"></i>
+                            </div>
+                            <span class="h3 fw-bold mb-0 text-dark">{{ $stats['finalizadas'] }}</span>
                         </div>
-                        <span class="h3 fw-bold mb-0 text-dark">{{ $stats['finalizadas'] }}</span>
+                        <h6 class="fw-bold text-muted text-uppercase small mb-1">Finalizadas</h6>
+                        <p class="text-info fw-bold mb-0 opacity-75">Proceso completo</p>
                     </div>
-                    <h6 class="fw-bold text-muted text-uppercase small mb-1">Finalizadas</h6>
-                    <p class="text-info fw-bold mb-0">Proceso completo</p>
                 </div>
-                <div class="bg-info opacity-10" style="height: 4px;"></div>
-            </div>
+            </a>
         </div>
     </div>
+
+
 
     <div class="row g-4 mb-5">
         {{-- Reporte Detallado --}}
         <div class="col-lg-12">
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden animate__animated animate__fadeInUp">
-                <div class="card-header bg-white border-0 py-4 px-4 d-flex align-items-center justify-content-between border-bottom">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-dark p-2 rounded-3 me-3">
-                            <i class="fas fa-list-ul text-white"></i>
+                <div class="card-header bg-white border-bottom py-4 px-4">
+                    <form action="{{ route('admin.dashboard') }}" method="GET" id="searchForm">
+                        <input type="hidden" name="status" value="{{ request('status') }}">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-dark p-2 rounded-3 me-3">
+                                        <i class="fas fa-list-ul text-white"></i>
+                                    </div>
+                                    <h5 class="fw-bold mb-0 text-dark">Seguimiento de Agendas</h5>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-3">
+                                        <i class="fas fa-search text-muted"></i>
+                                    </span>
+                                    <input type="text" name="search" value="{{ request('search') }}" 
+                                        class="form-control border-start-0 rounded-end-pill" 
+                                        placeholder="Buscar por ID, nombre o documento...">
+                                </div>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-center gap-2 justify-content-end">
+                                <label class="small text-muted fw-bold mb-0">Ver:</label>
+                                <select name="per_page" class="form-select rounded-pill w-auto" onchange="this.form.submit()">
+                                    <option value="5" {{ request('per_page') == 5 ? 'selected' : '' }}>5</option>
+                                    <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10</option>
+                                    <option value="20" {{ request('per_page') == 20 ? 'selected' : '' }}>20</option>
+                                    <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                                </select>
+                                <button type="submit" class="btn btn-success rounded-pill px-3 fw-bold shadow-sm">
+                                    Buscar
+                                </button>
+                            </div>
                         </div>
-                        <h5 class="fw-bold mb-0 text-dark">Seguimiento de Agendas (Últimas 10)</h5>
-                    </div>
+                    </form>
                 </div>
+
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0 custom-table">
@@ -167,8 +212,22 @@
                         </table>
                     </div>
                 </div>
+                @if($agendas->total() > $agendas->perPage())
+                <div class="card-footer bg-white border-top-0 py-4 d-flex justify-content-center">
+                    <div class="pagination-container shadow-sm p-1 bg-light rounded-pill d-inline-block custom-pagination">
+                        {{ $agendas->links() }}
+                    </div>
+                </div>
+                @endif
+                @if($agendas->total() == 0)
+                <div class="p-5 text-center">
+                    <i class="fas fa-search-minus fa-3x text-muted mb-3"></i>
+                    <p class="text-muted mb-0">No se encontraron resultados para la búsqueda actual.</p>
+                </div>
+                @endif
             </div>
         </div>
+
     </div>
 </div>
 
@@ -235,44 +294,83 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
-    $('.filter-card').on('click', function() {
-        let filter = $(this).data('filter');
-        $('.filter-card').css('opacity', '0.6');
-        $(this).css('opacity', '1');
-
-        if(filter === 'all') {
-            $('.custom-table tbody tr').show();
-        } else if (filter === 'proceso') {
-            $('.custom-table tbody tr').each(function() {
-                let state = $(this).find('td:eq(2) .badge').text().trim().toUpperCase();
-                if(state !== 'BORRADOR' && !state.includes('DEVUELTA') && !state.includes('CORRECCIÓN') && state !== 'APROBADA') {
-                    $(this).show();
-                } else if(state === 'APROBADA_SUPERVISOR' || state === 'APROBADA_ORDENADOR' || state === 'APROBADA_VIATICOS') {
-                    $(this).show(); // Aprobaciones parciales cuentan como en proceso
-                } else {
-                    $(this).hide();
-                }
-            });
-        } else {
-            $('.custom-table tbody tr').each(function() {
-                let state = $(this).find('td:eq(2) .badge').text().trim().toUpperCase();
-                
-                if (filter === 'APROBADA') {
-                    // Solo mostrar APROBADA exacta (Finalizada), no APROBADA_SUPERVISOR etc.
-                    if (state === 'APROBADA') $(this).show();
-                    else $(this).hide();
-                } else if (filter === 'DEVUELTA') {
-                    // Mostrar CORRECCIÓN o cualquier cosa que el backend considere devuelta
-                    if (state.includes('CORRECCIÓN') || state.includes('DEVUELTA')) $(this).show();
-                    else $(this).hide();
-                } else {
-                    if(state.includes(filter)) $(this).show();
-                    else $(this).hide();
-                }
-            });
-        }
-    });
+    // Las tarjetas ahora son enlaces directos, por lo que el filtrado JS ya no es necesario para el dashboard global
+    // pero mantenemos el efecto visual si es deseado o para futuras interacciones locales.
 });
 </script>
 @endpush
+
+<style>
+    /* Ocultar texto por defecto del paginador */
+    .custom-pagination nav > div:first-child,
+    .custom-pagination nav div.d-none.flex-sm-fill > div:first-child,
+    .custom-pagination nav p.text-muted {
+        display: none !important;
+    }
+    
+    .custom-pagination nav > div.d-none.flex-sm-fill > div {
+        display: flex !important;
+        justify-content: center !important;
+    }
+
+    /* Diseño circular Sena */
+    .custom-pagination .pagination {
+        margin-bottom: 0 !important;
+        gap: 0.3rem;
+    }
+    .custom-pagination .page-item .page-link {
+        border-radius: 50% !important;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        color: #4b5563;
+        font-weight: 600;
+        background: transparent;
+        transition: all 0.2s ease;
+    }
+    .custom-pagination .page-item:not(.active) .page-link:hover {
+        background: #f3f4f6;
+        color: #39a900;
+    }
+    .custom-pagination .page-item.active .page-link {
+        background-color: #39a900 !important;
+        color: white !important;
+        box-shadow: 0 4px 6px -1px rgba(57, 169, 0, 0.4);
+    }
+    
+    .custom-pagination .page-item.disabled .page-link {
+        color: #cbd5e1;
+        background: transparent;
+    }
+
+    .filter-card {
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .filter-card-inactive {
+        opacity: 0.35;
+        filter: grayscale(0.85);
+        transform: scale(0.94);
+    }
+
+    .filter-card-active {
+        opacity: 1 !important;
+        filter: grayscale(0) !important;
+        transform: scale(1.04);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.12) !important;
+        z-index: 5;
+    }
+
+    .filter-card:hover:not(.filter-card-inactive) {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+    }
+</style>
+
+
 @endsection

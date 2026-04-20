@@ -1,6 +1,8 @@
 @extends('layouts.dashboard')
 
 @section('content')
+
+
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -29,38 +31,56 @@
     {{-- Filtros y Búsqueda --}}
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-body p-4">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-3">
-                            <i class="fas fa-search text-muted"></i>
-                        </span>
-                        <input type="text" id="searchInput" class="form-control border-start-0 rounded-end-pill" placeholder="Buscar por nombre, cédula o email...">
+            <form action="{{ route('viaticos.personal.index') }}" method="GET" id="filterForm">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-3">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" name="search" id="searchInput" value="{{ request('search') }}" 
+                                class="form-control border-start-0 rounded-end-pill" 
+                                placeholder="Nombre, cédula o email...">
+                        </div>
                     </div>
+                    <div class="col-md-2">
+                        <select name="role" id="roleFilter" class="form-select rounded-pill" onchange="this.form.submit()">
+                            <option value="">Todos los Roles</option>
+                            <option value="contratista" {{ request('role') == 'contratista' ? 'selected' : '' }}>Contratista</option>
+                            <option value="supervisor_contrato" {{ request('role') == 'supervisor_contrato' ? 'selected' : '' }}>Supervisor</option>
+                            <option value="ordenador_gasto" {{ request('role') == 'ordenador_gasto' ? 'selected' : '' }}>Ordenador</option>
+                            <option value="viaticos" {{ request('role') == 'viaticos' ? 'selected' : '' }}>Viáticos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="vinculacion" id="vinculacionFilter" class="form-select rounded-pill" onchange="this.form.submit()">
+                            <option value="">Todas las Vinculaciones</option>
+                            @foreach($categorias as $cat)
+                                <option value="{{ $cat->nombre }}" {{ request('vinculacion') == $cat->nombre ? 'selected' : '' }}>{{ $cat->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-center gap-2">
+                        <label class="small text-muted fw-bold text-nowrap mb-0">Mostrar:</label>
+                        <select name="per_page" class="form-select rounded-pill w-auto" onchange="this.form.submit()">
+                            <option value="5" {{ request('per_page') == 5 ? 'selected' : '' }}>5</option>
+                            <option value="10" {{ request('per_page', 5) == 10 ? 'selected' : '' }}>10</option>
+                            <option value="20" {{ request('per_page') == 20 ? 'selected' : '' }}>20</option>
+                            <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                        </select>
+                        <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm">
+                            Buscar
+                        </button>
+                    </div>
+
                 </div>
-                <div class="col-md-3">
-                    <select id="roleFilter" class="form-select rounded-pill">
-                        <option value="">Todos los Roles</option>
-                        <option value="contratista">Contratista</option>
-                        <option value="supervisor_contrato">Supervisor (Coordinador)</option>
-                        <option value="ordenador_gasto">Ordenador Gasto (Subdirector)</option>
-                        <option value="viaticos">Viáticos</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <select id="vinculacionFilter" class="form-select rounded-pill">
-                        <option value="">Todas las Vinculaciones</option>
-                        @foreach($categorias as $cat)
-                            <option value="{{ $cat->nombre }}">{{ $cat->nombre }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 
+
     {{-- Tabla de Personal --}}
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0" id="personalTable">
@@ -70,19 +90,14 @@
                             <th>Identificación</th>
                             <th>Contacto</th>
                             <th>Rol / Vinculación</th>
-                            <th>N° Cuenta</th>
+                            <th>Nro. Cuenta - Tipo</th>
                             <th class="text-center">Estado</th>
                             <th class="text-end pe-4">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($users as $user)
-                        <tr class="user-row" 
-                            data-name="{{ strtolower($user->name) }}" 
-                            data-cedula="{{ $user->numero_documento }}" 
-                            data-email="{{ strtolower($user->email) }}"
-                            data-role="{{ $user->role }}"
-                            data-vinculacion="{{ $user->categoria->nombre ?? '' }}">
+                        @forelse($users as $user)
+                        <tr class="user-row">
                             <td class="ps-4">
                                 <div class="fw-bold text-dark">{{ $user->name }}</div>
                                 <div class="small text-muted">{{ $user->email }}</div>
@@ -98,7 +113,7 @@
                                 <div class="small text-muted">{{ $user->categoria->nombre ?? 'N/A' }}</div>
                             </td>
                             <td>
-                                <div class="font-monospace small">{{ $user->numero_cuenta ?? 'Sin registrar' }}</div>
+                                <div class="font-monospace small">{{ $user->numero_cuenta_tipo ?? 'Sin registrar' }}</div>
                             </td>
                             <td class="text-center">
                                 <span class="badge rounded-pill bg-success bg-opacity-10 text-success px-3">Activo</span>
@@ -135,17 +150,28 @@
                                 </div>
                             </td>
                         </tr>
-                        @endforeach
+                        @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <i class="fas fa-user-slash fa-3x text-muted mb-3 d-block"></i>
+                                <p class="text-muted mb-0">No se encontraron registros que coincidan con la búsqueda.</p>
+                            </td>
+                        </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
-            <div id="noResults" class="p-5 text-center d-none">
-                <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
-                <p class="text-muted mb-0">No se encontraron registros que coincidan con la búsqueda.</p>
+        </div>
+        @if($users->total() > $users->perPage())
+        <div class="card-footer bg-white border-top-0 py-4 d-flex justify-content-center">
+            <div class="pagination-container shadow-sm p-1 bg-light rounded-pill d-inline-block custom-pagination">
+                {{ $users->links() }}
             </div>
         </div>
+        @endif
     </div>
 </div>
+
 
 {{-- Modal Crear Personal --}}
 <div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
@@ -376,55 +402,6 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchInput');
-    const roleFilter = document.getElementById('roleFilter');
-    const vinculacionFilter = document.getElementById('vinculacionFilter');
-    const rows = document.querySelectorAll('.user-row');
-    const noResults = document.getElementById('noResults');
-    const table = document.getElementById('personalTable');
-
-    function filterTable() {
-        const searchTerm = searchInput.value.toLowerCase();
-        const selectedRole = roleFilter.value;
-        const selectedVinculacion = vinculacionFilter.value;
-        let visibleCount = 0;
-
-        rows.forEach(row => {
-            const name = row.dataset.name;
-            const cedula = row.dataset.cedula;
-            const email = row.dataset.email;
-            const role = row.dataset.role;
-            const vinculacion = row.dataset.vinculacion;
-
-            const matchesSearch = name.includes(searchTerm) || 
-                                cedula.includes(searchTerm) || 
-                                email.includes(searchTerm);
-            
-            const matchesRole = selectedRole === '' || role === selectedRole;
-            const matchesVinculacion = selectedVinculacion === '' || vinculacion === selectedVinculacion;
-
-            if (matchesSearch && matchesRole && matchesVinculacion) {
-                row.classList.remove('d-none');
-                visibleCount++;
-            } else {
-                row.classList.add('d-none');
-            }
-        });
-
-        if (visibleCount === 0) {
-            table.classList.add('d-none');
-            noResults.classList.remove('d-none');
-        } else {
-            table.classList.remove('d-none');
-            noResults.classList.add('d-none');
-        }
-    }
-
-    searchInput.addEventListener('input', filterTable);
-    roleFilter.addEventListener('change', filterTable);
-    vinculacionFilter.addEventListener('change', filterTable);
-
     // Lógica para cargar datos en el Modal de Edición
     const editBtns = document.querySelectorAll('.edit-user-btn');
     const editForm = document.getElementById('editForm');
@@ -448,7 +425,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const ordenador = this.dataset.ordenador;
 
             // Actualizar la acción del formulario
-            editForm.action = `/viaticos/personal/${id}`;
+            editForm.action = `{{ url('/viaticos/personal') }}/${id}`;
             
             // Poblar campos
             document.getElementById('edit_name').value = name;
@@ -570,4 +547,52 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
+
+<style>
+    /* Ocultar texto por defecto del paginador */
+    .custom-pagination nav > div:first-child,
+    .custom-pagination nav div.d-none.flex-sm-fill > div:first-child,
+    .custom-pagination nav p.text-muted {
+        display: none !important;
+    }
+    
+    .custom-pagination nav > div.d-none.flex-sm-fill > div {
+        display: flex !important;
+        justify-content: center !important;
+    }
+
+    /* Diseño circular Sena */
+    .custom-pagination .pagination {
+        margin-bottom: 0 !important;
+        gap: 0.3rem;
+    }
+    .custom-pagination .page-item .page-link {
+        border-radius: 50% !important;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        color: #4b5563;
+        font-weight: 600;
+        background: transparent;
+        transition: all 0.2s ease;
+    }
+    .custom-pagination .page-item:not(.active) .page-link:hover {
+        background: #f3f4f6;
+        color: #39a900;
+    }
+    .custom-pagination .page-item.active .page-link {
+        background-color: #39a900 !important;
+        color: white !important;
+        box-shadow: 0 4px 6px -1px rgba(57, 169, 0, 0.4);
+    }
+    
+    .custom-pagination .page-item.disabled .page-link {
+        color: #cbd5e1;
+        background: transparent;
+    }
+</style>
 @endsection
+

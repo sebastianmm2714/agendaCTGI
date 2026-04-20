@@ -8,27 +8,62 @@ use Illuminate\Support\Facades\Storage;
 
 class AprobacionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
         
-        // Buscar el registro de funcionario que corresponde a este usuario
         $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
 
-        // Si no es funcionario, no debería ver nada (seguridad extra)
         if (!$funcionario) {
-            return view('coordinador.index', ['agendas' => collect()]);
+            return view('coordinador.index', [
+                'pendientes' => collect([]), 
+                'enviadas' => collect([]), 
+                'devueltas' => collect([])
+            ]);
         }
 
-        $agendas = AgendaDesplazamiento::where('supervisor_id', $funcionario->id)
-            ->whereHas('estado', function($q) {
-                $q->whereIn('nombre', ['ENVIADA', 'APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA_ORDENADOR', 'APROBADA', 'CORRECCIÓN']);
-            })
+        $query = AgendaDesplazamiento::where('supervisor_id', $funcionario->id)
             ->with(['user', 'estado', 'user.categoria'])
-            ->orderBy('updated_at', 'desc')
-            ->get();
+            ->orderBy('updated_at', 'desc');
 
-        return view('coordinador.index', compact('agendas'));
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->whereHas('user', function($qu) use ($search) {
+                    $qu->where('name', 'like', "%$search%")
+                       ->orWhere('numero_documento', 'like', "%$search%");
+                })
+                ->orWhereHas('user.categoria', function($qc) use ($search) {
+                    $qc->where('nombre', 'like', "%$search%");
+                })
+                ->orWhere('ruta', 'like', "%$search%")
+                ->orWhere('destinos', 'like', "%$search%")
+                ->orWhereRaw("DATE_FORMAT(fecha_inicio, '%d/%m/%Y') LIKE ?", ["%$search%"])
+                ->orWhereRaw("DATE_FORMAT(fecha_fin, '%d/%m/%Y') LIKE ?", ["%$search%"]);
+            });
+        }
+
+        // Tab activo y registros por página
+        $activeTab = $request->get('tab', 'pendientes');
+        $perPage   = (int) $request->get('per_page', 5);
+
+        // Paginado independiente para conservar estado entre cambios de página
+        $pendientes = (clone $query)->whereHas('estado', function($q) {
+            $q->where('nombre', 'ENVIADA');
+        })->paginate($perPage, ['*'], 'page_p')->appends($request->except('page_p'));
+
+        $enviadas = (clone $query)->whereHas('estado', function($q) {
+            $q->whereIn('nombre', ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA']);
+        })->paginate($perPage, ['*'], 'page_e')->appends($request->except('page_e'));
+
+        $devueltas = (clone $query)->whereHas('estado', function($q) {
+            $q->where('nombre', 'CORRECCIÓN');
+        })->paginate($perPage, ['*'], 'page_d')->appends($request->except('page_d'));
+
+        // Tab activo
+        $activeTab = $request->get('tab', 'pendientes');
+
+        return view('coordinador.index', compact('pendientes', 'enviadas', 'devueltas', 'activeTab'));
     }
 
     public function autorizar(Request $request, $id)
@@ -37,7 +72,9 @@ class AprobacionController extends Controller
         $estadoAprobado = \App\Models\EstadoAgenda::where('nombre', 'APROBADA_SUPERVISOR')->first();
         $user = auth()->user();
 
-        if (!$user->firma) {
+        $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
+        
+        if (!$user->firma || !$funcionario || !$funcionario->firma) {
             return redirect()->back()->withErrors(['firma' => 'Debe registrar su firma digital en la sección "Mi Firma" antes de autorizar agendas.']);
         }
 
@@ -51,6 +88,7 @@ class AprobacionController extends Controller
 
         $agenda->update([
             'estado_id' => $estadoAprobado->id,
+            'firma_supervisor_path' => $funcionario->firma,
             'observaciones_finanzas' => null 
         ]);
 

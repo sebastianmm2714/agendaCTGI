@@ -52,7 +52,7 @@
                     </form>
                 </div>
                 <div class="card-footer bg-light border-0 text-center py-3">
-                    <a href="{{ route('reportes') }}" class="text-decoration-none text-muted fw-bold">
+                    <a href="{{ route('viaticos.index', ['tab' => $tab]) }}" class="text-decoration-none text-muted fw-bold">
                         <i class="fas fa-arrow-left me-1"></i> Volver al listado
                     </a>
                 </div>

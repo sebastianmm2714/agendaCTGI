@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Agenda CTGI</title>
+    <link rel="icon" href="{{ asset('images/sena/logo-sena-verde.png') }}" type="image/png">
 </head>
 <body>
     <h1>instructor administrativo</h1>

@@ -13,27 +13,59 @@ class SubdirectorController extends Controller
      * Muestra la bandeja de entrada del Subdirector.
      * Ahora el filtro cambia: Solo ve agendas con estado 'APROBADA_VIATICOS' y 'APROBADA'
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
         
-        // Buscar el registro de funcionario que corresponde a este usuario
         $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
 
-        // Si no es funcionario, no debería ver nada (seguridad extra)
         if (!$funcionario) {
-            return view('subdirector.index', ['agendas' => collect()]);
+            return view('subdirector.index', [
+                'pendientes' => collect([]),
+                'aprobadas'  => collect([]),
+                'devueltas'  => collect([]),
+                'activeTab'  => 'pendientes',
+            ]);
         }
 
-        $agendas = AgendaDesplazamiento::where('ordenador_id', $funcionario->id)
+        $baseQuery = AgendaDesplazamiento::where('ordenador_id', $funcionario->id)
             ->whereHas('estado', function($q) {
-                $q->whereIn('nombre', ['APROBADA_VIATICOS', 'APROBADA', 'CORRECCIÓN']);
+                $q->whereIn('nombre', ['APROBADA_VIATICOS', 'APROBADA', 'CORRECCI\u00d3N']);
             })
-            ->with(['user', 'estado'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->with(['user', 'estado', 'user.categoria'])
+            ->orderBy('updated_at', 'desc');
 
-        return view('subdirector.index', compact('agendas'));
+        // BÚSQUEDA INTELIGENTE
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $baseQuery->where(function($q) use ($search) {
+                $q->whereHas('user', function($qu) use ($search) {
+                    $qu->where('name', 'like', "%$search%")
+                       ->orWhere('numero_documento', 'like', "%$search%");
+                })
+                ->orWhere('ruta', 'like', "%$search%")
+                ->orWhere('destinos', 'like', "%$search%")
+                ->orWhereRaw("DATE_FORMAT(fecha_inicio, '%d/%m/%Y') LIKE ?", ["%$search%"])
+                ->orWhereRaw("DATE_FORMAT(fecha_fin, '%d/%m/%Y') LIKE ?", ["%$search%"]);
+            });
+        }
+
+        $activeTab = $request->get('tab', 'pendientes');
+        $perPage   = (int) $request->get('per_page', 5);
+
+        $pendientes = (clone $baseQuery)->whereHas('estado', function($q) {
+            $q->where('nombre', 'APROBADA_VIATICOS');
+        })->paginate($perPage, ['*'], 'page_p')->appends($request->except('page_p'));
+
+        $aprobadas = (clone $baseQuery)->whereHas('estado', function($q) {
+            $q->where('nombre', 'APROBADA');
+        })->paginate($perPage, ['*'], 'page_a')->appends($request->except('page_a'));
+
+        $devueltas = (clone $baseQuery)->whereHas('estado', function($q) {
+            $q->where('nombre', 'CORRECCI\u00d3N');
+        })->paginate($perPage, ['*'], 'page_d')->appends($request->except('page_d'));
+
+        return view('subdirector.index', compact('pendientes', 'aprobadas', 'devueltas', 'activeTab'));
     }
 
     /**
@@ -48,7 +80,9 @@ class SubdirectorController extends Controller
 
         $user = Auth::user();
 
-        if (!$user->firma) {
+        $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
+
+        if (!$user->firma || !$funcionario || !$funcionario->firma) {
             return redirect()->back()->withErrors(['firma' => 'Debe registrar su firma digital en la sección "Mi Firma" antes de autorizar agendas.']);
         }
 
@@ -63,6 +97,7 @@ class SubdirectorController extends Controller
 
         $agenda->update([
             'estado_id' => $estadoAprobada->id,
+            'firma_ordenador_path' => $funcionario->firma,
         ]);
 
         return redirect()->route('ordenador_gasto.index')->with('success', 'Agenda autorizada y firmada correctamente. El proceso ha finalizado.');

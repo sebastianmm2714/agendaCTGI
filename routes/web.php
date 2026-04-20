@@ -85,6 +85,8 @@ Route::middleware('auth')->group(function () {
 
             // Exportar a Excel (CSV)
             Route::get('/viaticos/export/{id}', [ViaticosController::class , 'export'])->name('viaticos.export');
+            Route::post('/viaticos/export-bulk', [ViaticosController::class , 'exportBulk'])->name('viaticos.exportBulk');
+            Route::get('/viaticos/agendas-por-supervisor', [ViaticosController::class, 'getAgendasBySupervisor'])->name('viaticos.agendasPorSupervisor');
 
             // --- GESTIÓN DE PERSONAL (NUEVO) ---
             Route::get('/viaticos/personal', [ViaticosPersonalController::class , 'index'])->name('viaticos.personal.index');

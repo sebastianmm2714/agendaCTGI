@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>Agenda CTGI</title>
+    <link rel="icon" href="{{ asset('images/sena/logo-sena-verde.png') }}" type="image/png">
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
@@ -81,7 +82,7 @@
         }
 
         .brand-logo {
-            max-width: 180px;
+            max-width: 290px;
             height: auto;
             transition: transform 0.3s ease;
         }
@@ -297,11 +298,27 @@
             <div class="modal-body p-4">
                 <div class="text-center mb-4">
                     <div class="firma-preview-container bg-light rounded-4 border p-3 d-inline-block position-relative" style="min-width: 200px; min-height: 120px;">
-                        @if(auth()->user()->firma)
+                        @php
+                            $user = auth()->user();
+                            $firmaPath = $user->firma;
+                            $hasFirmaActual = !empty(trim($firmaPath));
+                            
+                            // Si es supervisor u ordenador, la firma "real" es la de la tabla funcionarios
+                            if (in_array($user->role, ['supervisor_contrato', 'ordenador_gasto'])) {
+                                $funcionario = \App\Models\Funcionario::where('numero_documento', trim($user->numero_documento))->first();
+                                if (!$funcionario || empty(trim($funcionario->firma))) {
+                                    $hasFirmaActual = false;
+                                } else {
+                                    $firmaPath = $funcionario->firma;
+                                }
+                            }
+                        @endphp
+
+                        @if($hasFirmaActual)
                             <div class="position-absolute top-0 start-50 translate-middle-x mt-n3">
                                 <span class="badge bg-success shadow-sm px-3 py-2 rounded-pill">Firma Actual</span>
                             </div>
-                            <img src="{{ Storage::url(auth()->user()->firma) }}" id="previewFirmaActual" class="img-fluid rounded-3 shadow-sm" style="max-height: 150px;" alt="Firma Actual">
+                            <img src="{{ asset('storage/' . $firmaPath) }}" id="previewFirmaActual" class="img-fluid rounded-3 shadow-sm" style="max-height: 150px;" alt="Firma Actual">
                         @else
                             <div class="py-4 text-muted fst-italic" id="noFirmaMsg">No has registrado una firma aún.</div>
                         @endif

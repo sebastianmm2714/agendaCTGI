@@ -200,21 +200,21 @@
                                                             <label class="form-label text-muted small text-uppercase fw-bold mb-1">Terminales Aéreas</label>
                                                             <div class="input-group">
                                                                 <span class="input-group-text border-0 bg-light text-muted">$</span>
-                                                                <input type="text" name="valor_aereo" class="form-control border-0 bg-light" placeholder="Ej: 100.000">
+                                                                <input type="number" name="valor_aereo" class="form-control border-0 bg-light" placeholder="Ej: 100000" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                                             </div>
                                                         </div>
                                                         <div class="col-md-4" id="wrapper_valor_terrestre" style="display: none;">
                                                             <label class="form-label text-muted small text-uppercase fw-bold mb-1">Terminales Terrestres</label>
                                                             <div class="input-group">
                                                                 <span class="input-group-text border-0 bg-light text-muted">$</span>
-                                                                <input type="text" name="valor_terrestre" class="form-control border-0 bg-light" placeholder="Ej: 90.000">
+                                                                <input type="number" name="valor_terrestre" class="form-control border-0 bg-light" placeholder="Ej: 90000" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                                             </div>
                                                         </div>
                                                         <div class="col-md-4" id="wrapper_valor_intermunicipal" style="display: none;">
                                                             <label class="form-label text-muted small text-uppercase fw-bold mb-1">Intermunicipales</label>
                                                             <div class="input-group">
                                                                 <span class="input-group-text border-0 bg-light text-muted">$</span>
-                                                                <input type="text" name="valor_intermunicipal" class="form-control border-0 bg-light" placeholder="Ej: 25.000">
+                                                                <input type="number" name="valor_intermunicipal" class="form-control border-0 bg-light" placeholder="Ej: 25000" min="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                                             </div>
                                                         </div>
                                                     </div>

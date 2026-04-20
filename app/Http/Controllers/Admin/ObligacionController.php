@@ -9,12 +9,28 @@ use Illuminate\Http\Request;
 
 class ObligacionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $obligaciones = ObligacionContrato::with('categoria')->get();
+        $search = $request->get('search');
+        $perPage = (int) $request->get('per_page', 10);
+
+        $query = ObligacionContrato::with('categoria');
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('nombre', 'like', "%$search%")
+                  ->orWhereHas('categoria', function($cq) use ($search) {
+                      $cq->where('nombre', 'like', "%$search%");
+                  });
+            });
+        }
+
+        $obligaciones = $query->paginate($perPage)->appends($request->all());
         $categorias = CategoriaPersonal::all();
+        
         return view('admin.obligaciones.index', compact('obligaciones', 'categorias'));
     }
+
 
     public function store(Request $request)
     {

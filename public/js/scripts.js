@@ -3,7 +3,7 @@ document.getElementById('btnPdf').addEventListener('click', () => {
   const elemento = document.querySelector('.hoja');
   
   const opciones = {
-    margin: [0, 0, 4, 0], 
+    margin: [0, 0, 10, 0], // Margen inferior aumentado para dar espacio al número de página
     filename: 'Agenda_Desplazamiento_SENA.pdf',
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: {
@@ -14,14 +14,14 @@ document.getElementById('btnPdf').addEventListener('click', () => {
       scrollX: 0,
       x: 0,
       y: 0,
-      windowWidth: 816 // Asegura que el ancho de ventana de captura coincida con el elemento
+      windowWidth: 816
     },
     jsPDF: {
       unit: 'mm',
       format: 'letter',
       orientation: 'portrait'
     },
-    pagebreak: { mode: 'css' }
+    pagebreak: { mode: ['css', 'legacy'] }
   };
 
   html2pdf()

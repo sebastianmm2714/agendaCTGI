@@ -30,6 +30,65 @@
             </div>
 
             <div class="card-body p-0">
+                {{-- BUSCADOR INTELIGENTE --}}
+                <div class="px-4 py-4 bg-light border-bottom">
+                    <form action="{{ route('reportar-dia') }}" method="GET" class="row g-3 align-items-center">
+                        <div class="col-md-7">
+                            <div class="input-group input-group-lg shadow-sm">
+                                <span class="input-group-text bg-white border-end-0 px-3">
+                                    <i class="fas fa-search text-success"></i>
+                                </span>
+                                <input type="text" name="search" class="form-control border-start-0 ps-0 fw-medium" 
+                                       placeholder="Buscar por ruta, destino o fecha (DD/MM/YYYY)..." 
+                                       value="{{ request('search') }}"
+                                       style="font-size: 0.95rem;">
+                                @if(request('search'))
+                                    <a href="{{ route('reportar-dia') }}" class="btn btn-white border-start-0 text-muted" title="Limpiar búsqueda">
+                                        <i class="fas fa-times-circle"></i>
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-md-3 position-relative">
+                            @php
+                                $estadoActivoTexto = 'Todos los estados';
+                                if(request('estado_id')) {
+                                    $estadoSeleccionado = $estados->firstWhere('id', request('estado_id'));
+                                    if($estadoSeleccionado) {
+                                        $estadoActivoTexto = str_replace('_', ' ', $estadoSeleccionado->nombre);
+                                    }
+                                }
+                            @endphp
+
+                            <div class="custom-select-trigger d-flex justify-content-between align-items-center shadow-sm w-100" tabindex="0">
+                                <span id="estado_trigger_text" class="text-truncate fw-medium {{ request('estado_id') ? 'text-dark fw-bold' : 'text-muted' }}">
+                                    {{ $estadoActivoTexto }}
+                                </span>
+                                <i class="fas fa-chevron-down ms-2 flex-shrink-0 text-muted"></i>
+                            </div>
+                            
+                            <div class="custom-select-dropdown" style="display:none;">
+                                <div class="custom-select-option {{ !request('estado_id') ? 'selected-item' : '' }}" data-value="" data-text="Todos los estados">
+                                    Todos los estados
+                                </div>
+                                @foreach($estados as $estado)
+                                    @php $n = str_replace('_', ' ', $estado->nombre); @endphp
+                                    <div class="custom-select-option {{ request('estado_id') == $estado->id ? 'selected-item' : '' }}" 
+                                         data-value="{{ $estado->id }}" 
+                                         data-text="{{ $n }}">
+                                        {{ $n }}
+                                    </div>
+                                @endforeach
+                            </div>
+                            <input type="hidden" name="estado_id" id="estado_input" value="{{ request('estado_id') }}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-success w-100 rounded-pill fw-bold py-2 shadow-sm">
+                                <i class="fas fa-filter me-1"></i> Filtrar
+                            </button>
+                        </div>
+                    </form>
+                </div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light">
@@ -75,8 +134,12 @@
 
                                     <td class="text-center">
                                         {{-- LÓGICA DE DEVOLUCIÓN --}}
-                                        @if($agenda->estado && $agenda->estado->nombre == 'CORRECCIÓN')
-                                            <div class="alert alert-danger mb-0 py-1 px-2 shadow-sm d-inline-block text-start" style="font-size: 0.75rem; border-left: 4px solid #dc3545;">
+                                        @if($agenda->estado && ($agenda->estado->nombre == 'CORRECCIÓN' || ($agenda->estado->nombre == 'ENVIADA' && $agenda->observaciones_finanzas)))
+                                            <div class="alert alert-danger mb-0 py-1 px-2 shadow-sm d-inline-block text-start clickable-alert" 
+                                                 style="font-size: 0.75rem; border-left: 4px solid #dc3545; cursor: pointer;"
+                                                 data-bs-toggle="modal" 
+                                                 data-bs-target="#modalInfo{{ $agenda->id }}"
+                                                 title="Clic para ver detalles">
                                                 <strong class="d-block text-uppercase small"><i class="fas fa-undo-alt me-1"></i> Devuelta</strong>
                                                 <span class="text-dark">{{ Str::limit($agenda->observaciones_finanzas, 30) }}</span>
                                             </div>
@@ -105,12 +168,18 @@
 
                                     <td class="text-center px-4">
                                         <div class="d-flex justify-content-center align-items-center gap-2">
-                                            @if($agenda->estado && $agenda->estado->nombre == 'CORRECCIÓN')
+                                            @php
+                                                $diasTotal = $agenda->fecha_inicio->diffInDays($agenda->fecha_fin) + 1;
+                                                $diasReportados = $agenda->actividades->count();
+                                                $reporteCompleto = $diasReportados >= $diasTotal;
+                                            @endphp
+
+                                            @if($agenda->estado && ($agenda->estado->nombre == 'CORRECCIÓN' || ($agenda->estado->nombre == 'ENVIADA' && $agenda->observaciones_finanzas)))
                                                 <a href="{{ route('formulario', $agenda->id) }}"
                                                    class="btn btn-sm btn-warning rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center">
                                                     <i class="fas fa-edit me-1"></i> Corregir
                                                 </a>
-                                            @elseif(!$agenda->estado || strtoupper($agenda->estado->nombre) == 'BORRADOR')
+                                            @elseif((!$agenda->estado || strtoupper($agenda->estado->nombre) == 'BORRADOR') && !$reporteCompleto)
                                                 <a href="{{ route('reportar-dia.show', $agenda->id) }}"
                                                    class="btn btn-sm btn-success rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center">
                                                     <i class="fas fa-calendar-plus me-1"></i> Reportar
@@ -134,11 +203,11 @@
                                                 </form>
                                             @endif
 
-                                            <a href="{{ route('agenda.pdf', $agenda->id) }}" 
-                                                class="btn btn-sm btn-outline-danger rounded-circle d-flex align-items-center justify-content-center shadow-sm" 
-                                                style="width: 32px; height: 32px;"
-                                                target="_blank" title="Ver PDF">
-                                                <i class="fas fa-file-pdf"></i>
+                                            <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank" 
+                                                class="btn btn-sm btn-dark rounded-pill px-2 shadow-sm fw-bold d-flex align-items-center justify-content-center" 
+                                                style="min-width: 60px;"
+                                                title="Ver PDF">
+                                                <i class="fas fa-eye me-1"></i> PDF
                                             </a>
                                         </div>
                                     </td>
@@ -156,13 +225,169 @@
                         </tbody>
                     </table>
                 </div>
+
+                {{-- PAGINACIÓN --}}
+                <div class="px-4 py-4 bg-light border-top d-flex justify-content-center align-items-center">
+                    <div class="pagination-container shadow-sm p-1 bg-white rounded-pill d-inline-block custom-pagination">
+                        {{ $agendas->appends(request()->query())->links() }}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+{{-- MODALES DE REVISIÓN PARA AGENDAS DEVUELTAS --}}
+@foreach($agendas as $agenda)
+    @if($agenda->estado && ($agenda->estado->nombre == 'CORRECCIÓN' || ($agenda->estado->nombre == 'ENVIADA' && $agenda->observaciones_finanzas)))
+    
+    {{-- MODAL: SOLO INFORMACIÓN (El botón cerrar solo cierra el modal) --}}
+    <div class="modal fade" id="modalInfo{{ $agenda->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 bg-light p-4">
+                    <h5 class="fw-bold mb-0">Detalles de la Agenda #{{ $agenda->id }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-4 p-3 bg-light border rounded-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <i class="fas fa-file-pdf fa-2x text-danger me-2"></i>
+                            <span class="fw-bold small text-dark">DOCUMENTO PDF</span>
+                        </div>
+                        <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank" class="btn btn-sm btn-danger rounded-pill px-4 shadow-sm fw-bold">
+                            ABRIR ARCHIVO
+                        </a>
+                    </div>
+                    <div class="text-center mb-4">
+                        <label class="small text-muted fw-bold d-block">CONTRATISTA REGISTRADO</label>
+                        <p class="fs-4 fw-bold text-dark text-uppercase mb-0">{{ $agenda->user->name ?? 'N/A' }}</p>
+                    </div>
+                    <div class="p-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded-3">
+                        <label class="small fw-bold text-warning-emphasis">NOTA DE REVISIÓN:</label>
+                        <p class="mb-0 small text-dark text-italic">"{{ $agenda->observaciones_finanzas }}"</p>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0 d-flex justify-content-center">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+@endforeach
 @push('scripts')
+<style>
+    /* ── Dropdown custom Estados ── */
+    .custom-select-trigger {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 0.75rem;
+        padding: 0.75rem 1.25rem;
+        cursor: pointer;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+    .custom-select-trigger:hover, .custom-select-trigger:focus {
+        border-color: #39a900;
+        box-shadow: 0 0 0 0.25rem rgba(57, 169, 0, 0.1);
+        outline: none;
+    }
+    .custom-select-dropdown {
+        position: absolute;
+        top: 105%;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        padding: 0.5rem;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .custom-select-option {
+        padding: 0.7rem 1rem;
+        border-radius: 0.6rem;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #475569;
+        transition: all 0.15s ease;
+    }
+    .custom-select-option:hover { background: #f1f5f9; color: #39a900; }
+    .custom-select-option.selected-item { background: #ecfdf5; color: #059669; font-weight: 700; }
+
+    /* Ocultar texto por defecto del paginador */
+    .custom-pagination nav > div:first-child,
+    .custom-pagination nav div.d-none.flex-sm-fill > div:first-child,
+    .custom-pagination nav p.text-muted {
+        display: none !important;
+    }
+    
+    .custom-pagination nav ul.pagination {
+        margin-bottom: 0;
+        justify-content: center;
+    }
+
+    /* Estilos Paginador SENA */
+    .custom-pagination .page-item .page-link {
+        border-radius: 50% !important;
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 4px;
+        border: none;
+        color: #4b5563;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        background: transparent;
+    }
+    
+    .custom-pagination .page-item.active .page-link {
+        background-color: #39a900 !important;
+        color: white !important;
+        box-shadow: 0 4px 6px -1px rgba(57, 169, 0, 0.4);
+    }
+    
+    .custom-pagination .page-item:not(.active) .page-link:hover {
+        background-color: #e2e8f0;
+        color: #39a900;
+    }
+
+    /* Animación para el recuadro clickable */
+    .clickable-alert {
+        transition: all 0.2s ease;
+    }
+    .clickable-alert:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.15) !important;
+        filter: brightness(0.95);
+    }
+</style>
 <script>
     $(document).ready(function() {
+        // Lógica para el dropdown personalizado de estados
+        $('.custom-select-trigger').on('click', function(e) {
+            e.stopPropagation();
+            $(this).next('.custom-select-dropdown').toggle();
+        });
+
+        $('.custom-select-option').on('click', function() {
+            const val = $(this).data('value');
+            const txt = $(this).data('text');
+            $('#estado_input').val(val);
+            $('#estado_trigger_text').text(txt).addClass('text-dark fw-bold');
+            $('.custom-select-dropdown').hide();
+        });
+
+        $(document).on('click', function() {
+            $('.custom-select-dropdown').hide();
+        });
+
         @if(session('error'))
             Swal.fire({
                 icon: 'error',
@@ -178,6 +403,22 @@
             const total = parseInt(btn.data('total'));
             const reportados = parseInt(btn.data('reportados'));
             const form = btn.closest('form');
+            const hasFirma = {{ auth()->user()->firma ? 'true' : 'false' }};
+
+            if (!hasFirma) {
+                Swal.fire({
+                    title: 'Firma Faltante',
+                    text: 'Debes cargar tu firma en el apartado "Mi Firma" para poder enviar la agenda.',
+                    icon: 'error',
+                    confirmButtonColor: '#39a900',
+                    confirmButtonText: 'Ir a Mi Firma'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $('#modalFirmaUsuario').modal('show');
+                    }
+                });
+                return;
+            }
 
             if (reportados < total) {
                 Swal.fire({

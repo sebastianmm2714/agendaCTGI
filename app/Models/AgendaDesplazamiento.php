@@ -31,6 +31,9 @@ class AgendaDesplazamiento extends Model
         'valor_intermunicipal',
         'supervisor_id',
         'ordenador_id',
+        'firma_contratista_path',
+        'firma_supervisor_path',
+        'firma_ordenador_path',
     ];
     
     protected $casts = [

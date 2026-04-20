@@ -10,14 +10,36 @@ class ReportarDiaController extends Controller
     /**
      * Muestra la lista de agendas del usuario para reportar días.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $agendas = AgendaDesplazamiento::with('estado')
-            ->where('user_id', auth()->id())
-            ->latest()
-            ->get();
+        $search = $request->get('search');
+        $perPage = 6;
 
-        return view('reportar_dia.index', compact('agendas'));
+        $query = AgendaDesplazamiento::with('estado')
+            ->where('user_id', auth()->id())
+            ->latest();
+
+        // Búsqueda inteligente
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($search) {
+                $q->where('ruta', 'like', "%$search%")
+                  ->orWhere('destinos', 'like', "%$search%")
+                  ->orWhereRaw("DATE_FORMAT(fecha_inicio, '%d/%m/%Y') LIKE ?", ["%$search%"])
+                  ->orWhereRaw("DATE_FORMAT(fecha_fin, '%d/%m/%Y') LIKE ?", ["%$search%"]);
+            });
+        }
+
+        // Filtro por estado
+        if ($request->filled('estado_id')) {
+            $query->where('estado_id', $request->estado_id);
+        }
+
+        $agendas = $query->paginate($perPage)->appends($request->all());
+        
+        // Obtener estados para el filtro
+        $estados = \App\Models\EstadoAgenda::all();
+
+        return view('reportar_dia.index', compact('agendas', 'estados'));
     }
 
     /**
@@ -138,6 +160,11 @@ class ReportarDiaController extends Controller
             return back()->with('error', 'Esta agenda ya ha sido enviada o procesada.');
         }
 
+        // VALIDACIÓN: Firma Digital
+        if (!auth()->user()->firma) {
+            return redirect()->back()->with('error', 'Debes cargar tu firma digital en el apartado "Mi Firma" antes de poder enviar agendas.');
+        }
+
         // VALIDACIÓN: Todos los días deben estar reportados
         $diasEsperados = $agenda->fecha_inicio->diffInDays($agenda->fecha_fin) + 1;
         $diasReportados = $agenda->actividades()->count();
@@ -152,6 +179,7 @@ class ReportarDiaController extends Controller
         
         $agenda->update([
             'estado_id' => $estadoEnviada->id,
+            'firma_contratista_path' => auth()->user()->firma,
             'observaciones_finanzas' => null 
         ]);
 

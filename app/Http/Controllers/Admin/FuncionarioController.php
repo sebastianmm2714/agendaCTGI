@@ -8,11 +8,27 @@ use Illuminate\Http\Request;
 
 class FuncionarioController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $funcionarios = Funcionario::orderBy('nombre')->get();
+        $search = $request->get('search');
+        $perPage = (int) $request->get('per_page', 10);
+
+        $query = Funcionario::orderBy('nombre');
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('nombre', 'like', "%$search%")
+                  ->orWhere('cargo', 'like', "%$search%")
+                  ->orWhere('tipo', 'like', "%$search%")
+                  ->orWhere('numero_documento', 'like', "%$search%");
+            });
+        }
+
+        $funcionarios = $query->paginate($perPage)->appends($request->all());
+
         return view('admin.funcionarios.index', compact('funcionarios'));
     }
+
 
     public function store(Request $request)
     {

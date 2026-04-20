@@ -11,11 +11,23 @@ use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with(['categoria', 'supervisor', 'ordenador'])
-            ->orderBy('name')
-            ->get();
+        $search = $request->get('search');
+        $perPage = (int) $request->get('per_page', 10);
+
+        $query = User::with(['categoria', 'supervisor', 'ordenador'])
+            ->orderBy('name');
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%$search%")
+                  ->orWhere('numero_documento', 'like', "%$search%")
+                  ->orWhere('email', 'like', "%$search%");
+            });
+        }
+
+        $users = $query->paginate($perPage)->appends($request->all());
             
         $categorias = CategoriaPersonal::orderBy('nombre')->get();
         $supervisores = Funcionario::where('tipo', 'SUPERVISOR')->orderBy('nombre')->get();
@@ -23,6 +35,7 @@ class UserController extends Controller
 
         return view('admin.usuarios.index', compact('users', 'categorias', 'supervisores', 'ordenadores'));
     }
+
 
     public function store(Request $request)
     {

@@ -16,32 +16,66 @@ class AdminController extends Controller
     /**
      * Dashboard del administrador con estadísticas globales.
      */
-    public function dashboard()
+    public function dashboard(Request $request)
     {
+        $statusFilter = $request->get('status');
+        $search = $request->get('search');
+        $perPage = (int) $request->get('per_page', 10);
+
         $stats = [
             'total_agendas' => AgendaDesplazamiento::count(),
-            'enviadas' => AgendaDesplazamiento::whereHas('estado', function($q) {
-                $q->whereIn('nombre', ['ENVIADA', 'APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA_ORDENADOR']);
+            'enviadas' => AgendaDesplazamiento::whereHas('estado', function ($q) {
+                $q->whereIn('nombre', ['ENVIADA', 'APROBADA_SUPERVISOR', 'APROBADA_VIATICOS']);
             })->count(),
-            'devueltas' => AgendaDesplazamiento::whereNotNull('observaciones_finanzas')
-                ->whereHas('estado', function($q) {
-                    $q->whereNotIn('nombre', ['APROBADA']);
-                })->count(),
-            'finalizadas' => AgendaDesplazamiento::whereHas('estado', function($q) {
+            'devueltas' => AgendaDesplazamiento::whereHas('estado', function ($q) {
+                $q->where('nombre', 'CORRECCIÓN');
+            })->count(),
+            'finalizadas' => AgendaDesplazamiento::whereHas('estado', function ($q) {
                 $q->where('nombre', 'APROBADA');
             })->count(),
             'total_usuarios' => User::count(),
             'total_funcionarios' => Funcionario::count(),
         ];
 
-        // Reporte Detallado de Agendas
-        $agendas = AgendaDesplazamiento::with(['user', 'estado', 'clasificacion'])
-            ->latest('updated_at')
-            ->take(10)
-            ->get();
+        // Query Builder for Agendas
+        $query = AgendaDesplazamiento::with(['user', 'estado', 'clasificacion'])
+            ->latest('updated_at');
 
-        return view('admin.dashboard', compact('stats', 'agendas'));
+        // Apply Status Filters
+        if ($statusFilter) {
+            if ($statusFilter === 'proceso') {
+                $query->whereHas('estado', function ($q) {
+                    $q->whereIn('nombre', ['ENVIADA', 'APROBADA_SUPERVISOR', 'APROBADA_VIATICOS']);
+                });
+            } elseif ($statusFilter === 'DEVUELTA') {
+                $query->whereHas('estado', function ($q) {
+                    $q->where('nombre', 'CORRECCIÓN');
+                });
+            } elseif ($statusFilter === 'APROBADA') {
+                $query->whereHas('estado', function ($q) {
+                    $q->where('nombre', 'APROBADA');
+                });
+            }
+        }
+
+
+        // Apply Search
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('id', 'like', "%$search%")
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->where('name', 'like', "%$search%")
+                           ->orWhere('numero_documento', 'like', "%$search%");
+                    });
+            });
+        }
+
+        $agendas = $query->paginate($perPage)->appends($request->all());
+
+        return view('admin.dashboard', compact('stats', 'agendas', 'statusFilter'));
     }
+
+
 
     /**
      * Vista unificada de catálogos (Estados y Categorías).

@@ -32,24 +32,31 @@ class DashboardController extends Controller
 
         $estadoPendiente = \App\Models\EstadoAgenda::where('nombre', $estadoPendienteNombre)->first();
 
-        // 3. Aplicar privacidad de registros
-        if ($user->role === 'administrador' || $user->role === 'contratista') {
+        // 3. Aplicar privacidad de registros (Multi-tenancy por rol)
+        if ($user->role === 'contratista') {
             $query->where('user_id', $user->id);
+        } elseif ($user->role === 'supervisor_contrato') {
+            $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
+            $query->where('supervisor_id', $funcionario ? $funcionario->id : 0);
+        } elseif ($user->role === 'ordenador_gasto') {
+            $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
+            $query->where('ordenador_id', $funcionario ? $funcionario->id : 0);
         }
+        // Viáticos y Administrador ven todo (sin filtro adicional)
 
         // 4. ESTADÍSTICAS DINÁMICAS
         // Devueltas: Tienen observaciones y no están finalizadas
         $queryDevueltas = (clone $query)->whereNotNull('observaciones_finanzas')
             ->whereHas('estado', function($q) {
-                $q->whereNotIn('nombre', ['APROBADA_VIATICOS', 'APROBADA_ORDENADOR', 'APROBADA']);
+                $q->whereNotIn('nombre', ['APROBADA_VIATICOS', 'APROBADA']);
             });
         $idDevueltas = $queryDevueltas->pluck('id')->toArray();
 
         // Enviadas: Ya no son borradores, no son "pendientes de accion" y no están devueltas
         $queryEnviadas = match ($user->role) {
                 'administrador', 'contratista' => (clone $query)->whereHas('estado', function($q){ $q->whereNotIn('nombre', ['BORRADOR', 'APROBADA']); }),
-                'supervisor_contrato' => (clone $query)->whereHas('estado', function($q){ $q->whereIn('nombre', ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA_ORDENADOR', 'APROBADA']); }),
-                'viaticos' => (clone $query)->whereHas('estado', function($q){ $q->whereIn('nombre', ['APROBADA_VIATICOS', 'APROBADA_ORDENADOR', 'APROBADA']); }),
+                'supervisor_contrato' => (clone $query)->whereHas('estado', function($q){ $q->whereIn('nombre', ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA']); }),
+                'viaticos' => (clone $query)->whereHas('estado', function($q){ $q->whereIn('nombre', ['APROBADA_VIATICOS', 'APROBADA']); }),
                 'ordenador_gasto' => (clone $query)->whereHas('estado', function($q){ $q->where('nombre', 'APROBADA'); }),
                 default => (clone $query)->whereHas('estado', function($q){ $q->where('nombre', 'APROBADA_VIATICOS'); }),
             };
