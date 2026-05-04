@@ -17,7 +17,7 @@ class SubdirectorController extends Controller
     {
         $user = auth()->user();
         
-        $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
+        $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
 
         if (!$funcionario) {
             return view('subdirector.index', [
@@ -80,7 +80,7 @@ class SubdirectorController extends Controller
 
         $user = Auth::user();
 
-        $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
+        $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
 
         if (!$user->firma || !$funcionario || !$funcionario->firma) {
             return redirect()->back()->withErrors(['firma' => 'Debe registrar su firma digital en la sección "Mi Firma" antes de autorizar agendas.']);
@@ -92,7 +92,7 @@ class SubdirectorController extends Controller
 
         // 3. Procesar la firma y actualizar estado
         if ($agenda->ordenador_id) {
-            \App\Models\Funcionario::where('id', $agenda->ordenador_id)->update(['firma' => $user->firma]);
+            \App\Models\LiderDeProceso::where('id', $agenda->ordenador_id)->update(['firma' => $user->firma]);
         }
 
         $agenda->update([

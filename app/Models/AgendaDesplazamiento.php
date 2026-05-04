@@ -70,11 +70,11 @@ class AgendaDesplazamiento extends Model
 
     public function supervisor()
     {
-        return $this->belongsTo(Funcionario::class, 'supervisor_id');
+        return $this->belongsTo(LiderDeProceso::class, 'supervisor_id');
     }
 
     public function ordenador()
     {
-        return $this->belongsTo(Funcionario::class, 'ordenador_id');
+        return $this->belongsTo(LiderDeProceso::class, 'ordenador_id');
     }
 }

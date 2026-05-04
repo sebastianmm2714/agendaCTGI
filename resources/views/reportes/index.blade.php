@@ -99,7 +99,7 @@
                             <tr class="text-dark">
                                 @if(in_array(auth()->user()->role, ['supervisor_contrato', 'ordenador_gasto', 'administrador']))
                                     <th class="ps-4 py-3" style="width: 80px;">#</th>
-                                    <th class="py-3">Funcionario</th>
+                                    <th class="py-3">Contratista / Instructor</th>
                                     <th class="py-3">Ruta / Destino</th>
                                     <th class="py-3">Fecha Inicio</th>
                                     <th class="py-3">Fecha Fin</th>
@@ -248,6 +248,18 @@
                                                class="btn btn-sm btn-dark rounded-pill px-2 shadow-sm fw-bold" title="Ver PDF" style="min-width: 70px;">
                                                 <i class="fas fa-eye"></i> PDF
                                             </a>
+
+                                            {{-- Acción de Eliminar (Solo para Supervisor o Admin) --}}
+                                            @if(in_array(auth()->user()->role, ['supervisor_contrato', 'administrador']))
+                                                <form action="{{ route('reportes.destroy', $agenda->id) }}" method="POST" class="delete-agenda-form d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle shadow-sm" 
+                                                            style="width: 32px; height: 32px; padding: 0;" title="Eliminar Agenda">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -302,7 +314,7 @@
                         </a>
                     </div>
                     <div class="text-center mb-4">
-                        <label class="small text-muted fw-bold d-block">CONTRATISTA REGISTRADO</label>
+                        <label class="small text-muted fw-bold d-block">CONTRATISTA / INSTRUCTOR REGISTRADO</label>
                         <p class="fs-4 fw-bold text-dark text-uppercase mb-0">{{ $agenda->user->name ?? 'N/A' }}</p>
                     </div>
                     <div class="p-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded-3">
@@ -552,6 +564,28 @@
                     confirmButton: 'rounded-pill px-4',
                     cancelButton: 'rounded-pill px-4'
                 }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+
+        // --- LÓGICA DE ELIMINACIÓN DE AGENDA ---
+        $('.delete-agenda-form').on('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+
+            Swal.fire({
+                title: '¿Eliminar Agenda?',
+                text: "Esta acción borrará permanentemente la agenda y todas sus actividades. No se puede deshacer.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, eliminar permanentemente',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
                     form.submit();

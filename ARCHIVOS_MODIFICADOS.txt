@@ -1,0 +1,97 @@
+---------------------CAMBIOS QUE YA ENVIE-----------
+
+Nombres de archivos modificados y su ruta:
+
+1. c:\Users\SENA\agendaCTGI\resources\views\layouts\dashboard.blade.php
+2. c:\Users\SENA\agendaCTGI\resources\views\reportar_dia\index.blade.php
+3. c:\Users\SENA\agendaCTGI\app\Http\Controllers\FormularioController.php
+4. c:\Users\SENA\agendaCTGI\resources\views\formulario.blade.php
+5. c:\Users\SENA\agendaCTGI\app\Http\Controllers\ReportarDiaController.php
+6. c:\Users\SENA\agendaCTGI\app\Http\Controllers\ReportesController.php
+7. c:\Users\SENA\agendaCTGI\resources\views\reportar_dia\show.blade.php
+8. c:\Users\SENA\agendaCTGI\database\migrations\2026_04_21_140736_add_numero_cuenta_tipo_to_funcionarios_table.php
+9. c:\Users\SENA\agendaCTGI\app\Models\Funcionario.php
+10. c:\Users\SENA\agendaCTGI\app\Console\Commands\ImportSistemaCommand.php
+11. c:\Users\SENA\agendaCTGI\database\data\Funcionarios.csv
+12. c:\Users\SENA\agendaCTGI\database\data\Instructores.csv
+13. c:\Users\SENA\agendaCTGI\storage\app\reporte_carga_usuarios.csv
+14. c:\Users\SENA\agendaCTGI\storage\app\reporte_carga_funcionarios.csv
+15. c:\Users\SENA\agendaCTGI\resources\views\agenda\pdf.blade.php
+
+
+---------------------CAMBIOS NUEVOS-----------
+
+1. c:\Users\SENA\agendaCTGI\routes\web.php
+2. c:\Users\SENA\agendaCTGI\resources\views\layouts\dashboard.blade.php
+3. c:\Users\SENA\agendaCTGI\app\Http\Controllers\Admin\CargaMasivaController.php
+4. c:\Users\SENA\agendaCTGI\resources\views\admin\carga_masiva\index.blade.php
+5. c:\Users\SENA\agendaCTGI\database\migrations\2026_04_22_173043_create_carga_masiva_historials_table.php [NEW]
+6. c:\Users\SENA\agendaCTGI\app\Models\CargaMasivaHistorial.php [NEW]
+
+---------------------DETALLE DE CARGA MASIVA-----------
+- CargaMasivaController.php:
+  * Implementación de encabezados únicos para evitar pérdida de datos (ej: cuando hay dos columnas "nombre").
+  * Mejora en el parseo de fechas (soporta puntos, y corrige el error 2026-14-12 detectando formatos YYYY-DD-MM).
+  * Formateo de contraseñas en CSV para evitar notación científica en Excel.
+  * Corrección en la detección de roles para priorizar columnas 'role'/'rol' y evitar que el tipo del supervisor sobrescriba al contratista (mejorado: ahora verifica si tiene categoría de personal).
+  * Implementación de limpieza profunda de documentos (cleanDocument) que maneja notación científica de Excel (E+).
+  * Resiliencia: Procesamiento de filas envuelto en try-catch para que errores individuales no detengan la carga de 800+ registros.
+  * Normalización automática de filas para asegurar que coincidan con los encabezados.
+  * Mejora en el reporte CSV con mensajes de error específicos por fila fallida.
+  * Normalización robusta de encabezados: Convierte a snake_case, elimina acentos y soporta alias comunes (ej: "cedula" -> "numero_documento").
+  * Depuración: Se añadió la lista de encabezados detectados a la respuesta JSON para facilitar el diagnóstico.
+  * Procesamiento en Dos Pasadas: Ahora primero crea a todos los usuarios/funcionarios y luego vincula las relaciones, permitiendo que el supervisor esté en cualquier parte del archivo (incluso después del contratista).
+  * Historial de Cargas: Nueva funcionalidad para persistir cada sesión de carga masiva en la base de datos.
+  * Persistencia de Reportes: Los reportes CSV ahora se guardan con nombres únicos para permitir su descarga posterior desde el historial.
+  * UI de Historial: Se añadió una tabla detallada en la vista de carga masiva con estadísticas (éxitos/errores) y acceso a reportes antiguos.
+
+---------------------CAMBIOS 2026-04-27-----------
+
+1. Renombrado de tabla `funcionarios` a `lideres_de_proceso`.
+2. Actualización de modelo `Funcionario.php` a `LiderDeProceso.php`.
+3. Refactorización global de todas las referencias de `Funcionario` a `LiderDeProceso` en controladores, modelos, vistas y rutas.
+4. Modificación en `CargaMasivaController.php`:
+   * Validación de campos vacíos (Nombre, Email) que impide la carga si faltan datos críticos.
+   * Lógica de "No Sobrescribir": No se actualizan los datos de usuarios existentes (identificados por documento), se saltan para preservar la integridad de la información previa.
+5. Actualización de vistas administrativas y de usuario para reflejar la nueva terminología de "Líder de Proceso".
+6. Actualización de comandos de importación por consola (`ImportSistemaCommand.php`).
+7. Corrección de IDs de modales y etiquetas en la interfaz de usuario.
+
+Archivos modificados/creados hoy:
+- app/Models/LiderDeProceso.php
+- app/Http/Controllers/Admin/LiderDeProcesoController.php
+- database/migrations/2026_04_27_141822_rename_funcionarios_to_lideres_de_proceso_table.php
+- app/Http/Controllers/Admin/CargaMasivaController.php
+- app/Models/User.php
+- app/Models/AgendaDesplazamiento.php
+- app/Http/Controllers/ViaticosPersonalController.php
+- app/Http/Controllers/AprobacionController.php
+- app/Http/Controllers/SubdirectorController.php
+- app/Http/Controllers/ViaticosController.php
+- app/Http/Controllers/ReportesController.php
+- app/Http/Controllers/DashboardController.php
+- app/Http/Controllers/ProfileController.php
+- app/Http/Controllers/Admin/UserController.php
+- routes/web.php
+- resources/views/layouts/dashboard.blade.php
+- resources/views/admin/lideres_de_proceso/index.blade.php
+- resources/views/admin/usuarios/index.blade.php
+- resources/views/viaticos/personal/index.blade.php
+- resources/views/coordinador/index.blade.php
+- resources/views/coordinador/partials/table.blade.php
+- resources/views/subdirector/index.blade.php
+- resources/views/subdirector/partials/table.blade.php
+- resources/views/inicio.blade.php
+- resources/views/reportes/index.blade.php
+- resources/views/viaticos/partials/tabla.blade.php
+- resources/views/admin/carga_masiva/index.blade.php
+- app/Console/Commands/ImportSistemaCommand.php
+- CargaMasivaController.php:
+- LiderDeProcesoController.php y UserController.php:
+app/Observers/LiderDeProcesoObserver.php: Sincroniza cambios desde Líderes hacia Usuarios.
+app/Observers/UserObserver.php: Sincroniza cambios desde Usuarios hacia Líderes.
+
+
+
+
+

@@ -252,7 +252,7 @@
       <tr>
         <td colspan="11" class="text-bold" style="text-align: left;">CONTRATO</td>
         <td colspan="3" class="text-bold text-center">No.</td>
-        <td colspan="3" class="content-value">{{ $agenda->user->numero_contrato ?? '' }}</td>
+        <td colspan="3" class="content-value">{{ last(explode('.', $agenda->user->numero_contrato ?? '')) }}</td>
         <td colspan="3" class="text-bold text-center">AÑO</td>
         <td colspan="4" class="content-value">{{ $agenda->user->anio_contrato ?? '' }}</td>
         
@@ -365,6 +365,17 @@
         <td colspan="48" class="text-bold text-center" style="font-size: 10px;">ACTIVIDADES (Deberá contener información detallada de las tareas a realizar día a día)</td>
       </tr>
 
+      @php
+        $returnRoute = '';
+        $returnTransport = [];
+        foreach($agenda->actividades as $act) {
+            if(!empty($act->ruta_regreso)) $returnRoute = $act->ruta_regreso;
+            if(!empty($act->transporte_regreso)) {
+                $returnTransport = is_array($act->transporte_regreso) ? $act->transporte_regreso : [$act->transporte_regreso];
+            }
+        }
+      @endphp
+
       @foreach ($agenda->actividades->sortBy('fecha') as $index => $actividad)
         @php
           $fechaAct = Carbon::parse($actividad->fecha);
@@ -415,12 +426,12 @@
         @if($loop->last)
         <tr>
           <td colspan="18" class="text-bold" style="text-align: left; padding-left: 5px; font-size: 10px;">Desplazamiento ruta de regreso:</td>
-          <td colspan="30" class="content-value" style="text-align: center;">{{ strtoupper($actividad->ruta_regreso ?: $agenda->ruta) }}</td>
+          <td colspan="30" class="content-value" style="text-align: center;">{{ strtoupper($returnRoute ?: $agenda->ruta) }}</td>
         </tr>
         <tr>
           <td colspan="18" class="text-bold" style="text-align: left; padding-left: 5px; font-size: 10px;">Medio de transporte: aéreo, terrestre, fluvial:</td>
           <td colspan="30" class="content-value" style="text-align: center;">
-            {{ strtoupper(is_array($actividad->transporte_regreso) ? implode(', ', $actividad->transporte_regreso) : ($actividad->transporte_regreso ?: 'TERRESTRE')) }}
+            {{ strtoupper(!empty($returnTransport) ? implode(', ', $returnTransport) : 'TERRESTRE') }}
           </td>
         </tr>
         @endif
@@ -458,37 +469,26 @@
         $pathS = $agenda->firma_supervisor_path ?? ($agenda->supervisor->firma ?? null);
         $pathO = $agenda->firma_ordenador_path ?? ($agenda->ordenador->nombre ? ($agenda->ordenador->firma ?? null) : null);
 
-        if (!function_exists('getFirmaBase64')) {
-          function getFirmaBase64($path) {
-            if (!$path) return '';
-            $full = storage_path('app/public/' . $path);
-            if (file_exists($full)) {
-              return 'data:image/' . pathinfo($full, PATHINFO_EXTENSION) . ';base64,' . base64_encode(file_get_contents($full));
-            }
-            return '';
-          }
-        }
-
-        $fC = getFirmaBase64($pathC);
-        $fS = (in_array($estado, ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA'])) ? getFirmaBase64($pathS) : '';
-        $fO = (in_array($estado, ['APROBADA'])) ? getFirmaBase64($pathO) : '';
+        $fC = $getFirmaBase64($pathC);
+        $fS = (in_array($estado, ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA'])) ? $getFirmaBase64($pathS) : '';
+        $fO = (in_array($estado, ['APROBADA'])) ? $getFirmaBase64($pathO) : '';
       @endphp
 
       <tr>
         <td colspan="16" class="text-bold" style="font-size: 9px; vertical-align: top; text-align: left; height: 65px; border: 1px solid black; padding: 2px;">
           FIRMA ORDENADOR DE GASTO:
           <div style="text-align: center; margin-top: 5px;">
-             @if($fO) <img src="{{ $fO }}" style="max-height: 45px;"> @endif
+             @if($fO) <img src="{{ $fO }}" style="max-height: 45px; max-width: 100%;"> @endif
           </div>
         </td>
         <td colspan="16" class="text-bold" style="font-size: 9px; vertical-align: top; text-align: left; border: 1px solid black; padding: 2px;">
           FIRMA SUPERVISOR DEL CONTRATO :
           <div style="text-align: center; margin-top: 5px;">
-             @if($fS) <img src="{{ $fS }}" style="max-height: 45px;"> @endif
+             @if($fS) <img src="{{ $fS }}" style="max-height: 45px; max-width: 100%;"> @endif
           </div>
         </td>
         <td colspan="16" rowspan="2" style="height: 60px; text-align: center; vertical-align: middle; border: 1px solid black; padding: 2px;">
-          @if($fC) <img src="{{ $fC }}" style="max-height: 60px;"> @endif
+          @if($fC) <img src="{{ $fC }}" style="max-height: 60px; max-width: 100%;"> @endif
         </td>
       </tr>
       <tr>

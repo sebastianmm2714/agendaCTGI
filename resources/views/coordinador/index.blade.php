@@ -197,7 +197,7 @@
         $('.form-autorizar-agenda').on('submit', function(e) {
             @php
                 $user = auth()->user();
-                $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
+                $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
                 $actualHasFirma = (!empty($user->firma) && $funcionario && !empty($funcionario->firma)) ? 'true' : 'false';
             @endphp
             const hasFirma = {{ $actualHasFirma }};

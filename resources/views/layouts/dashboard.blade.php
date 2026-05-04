@@ -245,17 +245,27 @@
                         <path d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-2.533-3.076c-1.03-.353-2.14-.545-3.213-.545a10.115 10.115 0 0 0-4.052.876 1.5 1.5 0 0 0-.903 1.341V18c0 .265.105.52.293.707.188.188.442.293.707.293h2.362Z" />
                         <path d="M12.14 16.14V15a3 3 0 0 0-3-3h-1.5a3 3 0 0 0-3 3v1.14M11.07 13.07a3 3 0 1 1-4.24-4.24 3 3 0 0 1 4.24 4.24ZM18.75 12a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" />
                     </svg>
-                    <span>Contratistas/Funcionarios</span>
+                    <span>Contratistas</span>
                 </div>
             </a>
 
-            <a href="{{ route('admin.funcionarios.index') }}" 
-            class="{{ request()->routeIs('admin.funcionarios*') ? 'active-link' : '' }} mt-2">
+            <a href="{{ route('admin.lideres_de_proceso.index') }}" 
+            class="{{ request()->routeIs('admin.lideres_de_proceso*') ? 'active-link' : '' }} mt-2">
                 <div class="d-flex align-items-center gap-3">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <path d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0a5.995 5.995 0 0 0-4.058-2.522M6 18.72a6 6 0 0 1 1.06-3.197m0 0a5.996 5.996 0 0 1 4.058-2.522m0 0a3 3 0 1 0-4.682-2.72M9.75 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM14.25 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z" />
                     </svg>
-                    <span>Supervisores/Ordenadores</span>
+                    <span>Líderes de Proceso</span>
+                </div>
+            </a>
+
+            <a href="{{ route('admin.carga-masiva.index') }}" 
+            class="{{ request()->routeIs('admin.carga-masiva*') ? 'active-link' : '' }} mt-2">
+                <div class="d-flex align-items-center gap-3">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+                    </svg>
+                    <span>Carga Masiva</span>
                 </div>
             </a>
             @endif
@@ -297,15 +307,15 @@
             </div>
             <div class="modal-body p-4">
                 <div class="text-center mb-4">
-                    <div class="firma-preview-container bg-light rounded-4 border p-3 d-inline-block position-relative" style="min-width: 200px; min-height: 120px;">
+                    <div class="firma-preview-container bg-white rounded-4 border p-4 d-flex align-items-center justify-content-center position-relative shadow-sm" style="min-width: 250px; min-height: 160px;">
                         @php
                             $user = auth()->user();
                             $firmaPath = $user->firma;
                             $hasFirmaActual = !empty(trim($firmaPath));
                             
-                            // Si es supervisor u ordenador, la firma "real" es la de la tabla funcionarios
+                            // Si es supervisor u ordenador, la firma "real" es la de la tabla lideres_de_proceso
                             if (in_array($user->role, ['supervisor_contrato', 'ordenador_gasto'])) {
-                                $funcionario = \App\Models\Funcionario::where('numero_documento', trim($user->numero_documento))->first();
+                                $funcionario = \App\Models\LiderDeProceso::where('numero_documento', trim($user->numero_documento))->first();
                                 if (!$funcionario || empty(trim($funcionario->firma))) {
                                     $hasFirmaActual = false;
                                 } else {
@@ -315,10 +325,16 @@
                         @endphp
 
                         @if($hasFirmaActual)
-                            <div class="position-absolute top-0 start-50 translate-middle-x mt-n3">
-                                <span class="badge bg-success shadow-sm px-3 py-2 rounded-pill">Firma Actual</span>
-                            </div>
-                            <img src="{{ asset('storage/' . $firmaPath) }}" id="previewFirmaActual" class="img-fluid rounded-3 shadow-sm" style="max-height: 150px;" alt="Firma Actual">
+                            @php $fBase64 = $getFirmaBase64($firmaPath); @endphp
+                            
+                            @if($fBase64)
+                                <div class="position-absolute top-0 start-50 translate-middle-x" style="margin-top: -12px;">
+                                    <span class="badge bg-success shadow-sm px-3 py-2 rounded-pill">Firma Actual</span>
+                                </div>
+                                <img src="{{ $fBase64 }}" id="previewFirmaActual" class="img-fluid rounded-3" style="max-height: 120px; max-width: 100%; object-fit: contain;" alt="Firma Actual">
+                            @else
+                                <div class="py-4 text-muted fst-italic" id="noFirmaMsg">Archivo de firma no encontrado.</div>
+                            @endif
                         @else
                             <div class="py-4 text-muted fst-italic" id="noFirmaMsg">No has registrado una firma aún.</div>
                         @endif
@@ -401,15 +417,16 @@
                 success: function(response) {
                     $('#loadingFirma').addClass('d-none');
                     if (response.success) {
-                        // Actualizar la firma original para futuros resets en esta sesión sin recargar
-                        const newImgPath = response.path;
-                        const img = `<div class="position-absolute top-0 start-50 translate-middle-x mt-n3">
-                                        <span class="badge bg-success shadow-sm px-3 py-2 rounded-pill">Firma Actual</span>
-                                     </div>
-                                     <img src="${newImgPath}" id="previewFirmaActual" class="img-fluid rounded-3 shadow-sm" style="max-height: 150px;" alt="Firma">`;
-                        
-                        $('.firma-preview-container').html(img);
-                        window.location.reload(); // Recargamos para que todo el dashboard tome la nueva firma original
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Éxito!',
+                            text: 'La firma se ha guardado correctamente.',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            willClose: () => {
+                                window.location.reload();
+                            }
+                        });
                     }
                 },
                 error: function(xhr) {

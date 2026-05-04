@@ -13,7 +13,7 @@ class FormularioController extends Controller
     {
         $agenda = null;
         if ($id) {
-            $agenda = AgendaDesplazamiento::with(['actividades', 'obligaciones', 'user'])->findOrFail($id);
+            $agenda = AgendaDesplazamiento::with(['actividades', 'obligaciones', 'user', 'estado'])->findOrFail($id);
         }
 
         $user = auth()->user()->load(['categoria.obligaciones', 'supervisor', 'ordenador']);
@@ -125,7 +125,7 @@ class FormularioController extends Controller
         $agenda->obligaciones()->sync($validatedData['obligaciones']);
 
         if ($request->filled('agenda_id')) {
-            return redirect()->route('reportar-dia')
+            return redirect()->to(session('back_url_reportar_dia', route('reportar-dia')))
                 ->with('success', 'La agenda se corrigió con éxito.');
         }
 
@@ -144,6 +144,23 @@ class FormularioController extends Controller
             'estado',
             'clasificacion'
         ])->findOrFail($id);
+
+        $user = auth()->user();
+        
+        // --- VALIDACIÓN DE SEGURIDAD (CANDADO) ---
+        $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
+        $funcionarioId = $funcionario ? $funcionario->id : null;
+
+        $isAuthorized = ($user->role === 'administrador') ||
+                        ($user->role === 'viaticos') ||
+                        ($agenda->user_id === $user->id) ||
+                        ($funcionarioId && ($agenda->supervisor_id === $funcionarioId || $agenda->ordenador_id === $funcionarioId));
+
+        if (!$isAuthorized) {
+            abort(403, 'No tiene permisos para acceder a este documento.');
+        }
+        // -----------------------------------------
+
         return view('agenda.pdf', compact('agenda'));
     }
 

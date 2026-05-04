@@ -35,9 +35,9 @@
             $user = auth()->user();
             $hasFirma = !empty(trim($user->firma));
 
-            // Si es supervisor u ordenador, verificamos también su ficha de funcionario
+            // Si es supervisor u ordenador, verificamos también su ficha de líder de proceso
             if ($hasFirma && in_array($user->role, ['supervisor_contrato', 'ordenador_gasto'])) {
-                $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
+                $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
                 if (!$funcionario || empty(trim($funcionario->firma))) {
                     $hasFirma = false;
                 }

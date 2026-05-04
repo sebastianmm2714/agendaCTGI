@@ -5,7 +5,7 @@
                 <thead class="bg-light text-secondary">
                     <tr>
                         <th class="ps-4 py-3" style="width: 100px;">Folio</th>
-                        <th>Funcionario</th>
+                        <th>Contratista / Instructor</th>
                         <th>Destino</th>
                         <th>Fecha Inicio</th>
                         <th>Fecha Fin</th>

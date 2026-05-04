@@ -4,7 +4,7 @@
 <div class="container-fluid px-4">
     <div class="d-flex align-items-center justify-content-between mb-4 animate__animated animate__fadeIn">
         <div>
-            <h2 class="fw-bold mb-1 text-dark">Gestión de Funcionarios</h2>
+            <h2 class="fw-bold mb-1 text-dark">Gestión de Líderes de Proceso</h2>
             <p class="text-muted mb-0">Administración de Supervisores, Ordenadores de Gasto y Tesorería</p>
         </div>
         <div class="bg-info bg-opacity-10 p-3 rounded-4">
@@ -14,10 +14,10 @@
 
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5">
         <div class="card-header bg-white border-bottom py-4 px-4">
-            <form action="{{ route('admin.funcionarios.index') }}" method="GET" id="searchForm">
+            <form action="{{ route('admin.lideres_de_proceso.index') }}" method="GET" id="searchForm">
                 <div class="row g-3 align-items-center">
                     <div class="col-md-3">
-                        <h5 class="fw-bold mb-0 text-dark d-none d-md-block">Listado de Funcionarios</h5>
+                        <h5 class="fw-bold mb-0 text-dark d-none d-md-block">Listado de Líderes de Proceso</h5>
                     </div>
                     <div class="col-md-5">
                         <div class="input-group shadow-sm rounded-pill overflow-hidden">
@@ -37,7 +37,7 @@
                             <option value="20" {{ request('per_page') == 20 ? 'selected' : '' }}>20</option>
                             <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
                         </select>
-                        <button type="button" class="btn btn-info rounded-pill px-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCrearFuncionario">
+                        <button type="button" class="btn btn-info rounded-pill px-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCrearLider">
                             <i class="fas fa-plus me-1"></i> Nuevo
                         </button>
                     </div>
@@ -58,7 +58,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($funcionarios as $fun)
+                        @forelse($lideres_de_proceso as $fun)
                         <tr>
                             <td class="ps-4 text-uppercase small">
                                 <div class="fw-bold text-dark">{{ $fun->nombre }}</div>
@@ -89,26 +89,26 @@
                                 @endif
                             </td>
                             <td class="pe-4 text-end">
-                                <button class="btn btn-link text-primary p-1" data-bs-toggle="modal" data-bs-target="#modalEditarFuncionario{{ $fun->id }}">
+                                <button class="btn btn-link text-primary p-1" data-bs-toggle="modal" data-bs-target="#modalEditarLider{{ $fun->id }}">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <form action="{{ route('admin.funcionarios.destroy', $fun->id) }}" method="POST" class="d-inline">
+                                <form action="{{ route('admin.lideres_de_proceso.destroy', $fun->id) }}" method="POST" class="d-inline">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-link text-danger p-1 btn-confirm-delete" data-title="¿Eliminar Funcionario?" data-text="Se eliminará al funcionario '{{ $fun->nombre }}'.">
+                                    <button type="submit" class="btn btn-link text-danger p-1 btn-confirm-delete" data-title="¿Eliminar Líder de Proceso?" data-text="Se eliminará al líder de proceso '{{ $fun->nombre }}'.">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
                             </td>
                         </tr>
 
-                        {{-- MODAL EDITAR FUNCIONARIO --}}
-                        <div class="modal fade" id="modalEditarFuncionario{{ $fun->id }}" tabindex="-1" aria-hidden="true">
+                        {{-- MODAL EDITAR LIDER --}}
+                        <div class="modal fade" id="modalEditarLider{{ $fun->id }}" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered">
                                 <div class="modal-content border-0 shadow rounded-4">
-                                    <form action="{{ route('admin.funcionarios.update', $fun->id) }}" method="POST">
+                                    <form action="{{ route('admin.lideres_de_proceso.update', $fun->id) }}" method="POST">
                                         @csrf @method('PUT')
                                         <div class="modal-header border-0 bg-light p-4">
-                                            <h5 class="fw-bold mb-0 text-dark">Editar Funcionario</h5>
+                                            <h5 class="fw-bold mb-0 text-dark">Editar Líder de Proceso</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body p-4">
@@ -140,7 +140,7 @@
                                                 <input type="text" name="cargo" class="form-control rounded-3" value="{{ $fun->cargo }}" required>
                                             </div>
                                             <div class="mb-3">
-                                                <label class="form-label fw-bold">Tipo de Funcionario</label>
+                                                <label class="form-label fw-bold">Tipo de Líder de Proceso</label>
                                                 <select name="tipo" class="form-select rounded-3" required>
                                                     <option value="SUPERVISOR" {{ $fun->tipo == 'SUPERVISOR' ? 'selected' : '' }}>SUPERVISOR </option>
                                                     <option value="ORDENADOR" {{ $fun->tipo == 'ORDENADOR' ? 'selected' : '' }}>ORDENADOR DE GASTO </option>
@@ -164,21 +164,21 @@
                         </div>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">No hay funcionarios registrados.</td>
+                            <td colspan="5" class="text-center py-5 text-muted">No hay lideres_de_proceso registrados.</td>
                         </tr>
                         @endforelse
                     </tbody>
-                @if($funcionarios->total() > $funcionarios->perPage())
+                @if($lideres_de_proceso->total() > $lideres_de_proceso->perPage())
                 <div class="card-footer bg-white border-top-0 py-4 d-flex justify-content-center">
                     <div class="pagination-container shadow-sm p-1 bg-light rounded-pill d-inline-block custom-pagination">
-                        {{ $funcionarios->links() }}
+                        {{ $lideres_de_proceso->links() }}
                     </div>
                 </div>
                 @endif
                 <div class="card-footer bg-light border-0 py-3 px-4">
                     <p class="mb-0 small text-muted">
                         <i class="fas fa-info-circle me-1 text-primary"></i> 
-                        Total: <strong>{{ $funcionarios->total() }}</strong> funcionarios registrados.
+                        Total: <strong>{{ $lideres_de_proceso->total() }}</strong> lideres_de_proceso registrados.
                     </p>
                 </div>
             </div>
@@ -234,14 +234,14 @@
 </style>
 
 
-{{-- MODAL CREAR FUNCIONARIO --}}
-<div class="modal fade" id="modalCrearFuncionario" tabindex="-1" aria-hidden="true">
+{{-- MODAL CREAR LIDER --}}
+<div class="modal fade" id="modalCrearLider" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
-            <form action="{{ route('admin.funcionarios.store') }}" method="POST">
+            <form action="{{ route('admin.lideres_de_proceso.store') }}" method="POST">
                 @csrf
                 <div class="modal-header border-0 bg-light p-4">
-                    <h5 class="fw-bold mb-0 text-dark">Nuevo Funcionario</h5>
+                    <h5 class="fw-bold mb-0 text-dark">Nuevo Líder de Proceso</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
@@ -273,7 +273,7 @@
                         <input type="text" name="cargo" class="form-control rounded-3" placeholder="Ej: COORDINADORA FORMACION" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Tipo de Funcionario</label>
+                        <label class="form-label fw-bold">Tipo de Líder de Proceso</label>
                         <select name="tipo" class="form-select rounded-3" required>
                             <option value="SUPERVISOR" selected>SUPERVISOR (Coord./Apoyo)</option>
                             <option value="ORDENADOR">ORDENADOR DE GASTO (Subdirector)</option>
@@ -286,7 +286,7 @@
                     </div>
                 </div>
                 <div class="modal-footer border-0 p-4 pt-0">
-                    <button type="submit" class="btn btn-info w-100 rounded-pill fw-bold py-2 shadow-sm">Registrar Funcionario</button>
+                    <button type="submit" class="btn btn-info w-100 rounded-pill fw-bold py-2 shadow-sm">Registrar Líder de Proceso</button>
                 </div>
             </form>
         </div>

@@ -135,9 +135,10 @@
                                                     <label class="form-label fw-bold">Rol</label>
                                                     <select name="role" class="form-select rounded-3" required>
                                                         <option value="contratista" {{ $user->role == 'contratista' ? 'selected' : '' }}>Contratista</option>
-                                                        <option value="funcionario" {{ $user->role == 'funcionario' ? 'selected' : '' }}>Funcionario</option>
+                                                        <option value="supervisor_contrato" {{ $user->role == 'supervisor_contrato' ? 'selected' : '' }}>Supervisor (Líder de Proceso)</option>
+                                                        <option value="ordenador_gasto" {{ $user->role == 'ordenador_gasto' ? 'selected' : '' }}>Ordenador (Líder de Proceso)</option>
+                                                        <option value="viaticos" {{ $user->role == 'viaticos' ? 'selected' : '' }}>Viáticos (Líder de Proceso)</option>
                                                         <option value="administrador" {{ $user->role == 'administrador' ? 'selected' : '' }}>Administrador</option>
-                                                        <option value="viaticos" {{ $user->role == 'viaticos' ? 'selected' : '' }}>Viáticos / Finanzas</option>
                                                     </select>
                                                 </div>
                                                 <div class="col-md-12">
@@ -309,9 +310,10 @@
                             <label class="form-label fw-bold">Rol en Sistema</label>
                             <select name="role" class="form-select rounded-3" required>
                                 <option value="contratista" selected>Contratista</option>
-                                <option value="funcionario">Funcionario</option>
+                                <option value="supervisor_contrato">Supervisor (Líder de Proceso)</option>
+                                <option value="ordenador_gasto">Ordenador (Líder de Proceso)</option>
+                                <option value="viaticos">Viáticos (Líder de Proceso)</option>
                                 <option value="administrador">Administrador</option>
-                                <option value="viaticos">Viáticos / Finanzas</option>
                             </select>
                         </div>
                         <div class="col-md-12">
@@ -341,7 +343,7 @@
                             <textarea name="objeto_contractual" class="form-control rounded-3" rows="2" placeholder="Descripción del objeto del contrato" required></textarea>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold text-success">Supervisor de Contrato</label>
+                            <label class="form-label fw-bold text-success">Líder de Proceso (Supervisor)</label>
                             <select name="supervisor_id" class="form-select rounded-3 border-success">
                                 <option value="">-- Sin asignar --</option>
                                 @foreach($supervisores as $sup)
@@ -350,7 +352,7 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold text-primary">Ordenador de Gasto</label>
+                            <label class="form-label fw-bold text-primary">Líder de Proceso (Ordenador)</label>
                             <select name="ordenador_id" class="form-select rounded-3 border-primary">
                                 <option value="">-- Sin asignar --</option>
                                 @foreach($ordenadores as $ord)

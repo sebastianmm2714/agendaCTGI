@@ -11,8 +11,24 @@
                         <i class="fas fa-file-signature fa-2x text-success"></i>
                     </div>
                     <div>
-                        <h2 class="fw-bold mb-1 text-dark">{{ isset($agenda) ? 'Corregir Agenda de Desplazamiento' : 'Nueva Agenda de Desplazamiento' }}</h2>
-                        <p class="text-muted mb-0">{{ isset($agenda) ? 'Modifique los campos necesarios para corregir su agenda.' : 'Complete todos los campos para registrar su comisión de servicio.' }}</p>
+                        <h2 class="fw-bold mb-1 text-dark">
+                            @if(!isset($agenda))
+                                Nueva Agenda de Desplazamiento
+                            @elseif(strtoupper($agenda->estado->nombre) == 'BORRADOR')
+                                Editar Agenda de Desplazamiento
+                            @else
+                                Corregir Agenda de Desplazamiento
+                            @endif
+                        </h2>
+                        <p class="text-muted mb-0">
+                            @if(!isset($agenda))
+                                Complete todos los campos para registrar su comisión de servicio.
+                            @elseif(strtoupper($agenda->estado->nombre) == 'BORRADOR')
+                                Modifique los datos de su borrador antes de enviarlo a revisión.
+                            @else
+                                Modifique los campos necesarios para corregir su agenda devuelta.
+                            @endif
+                        </p>
                     </div>
                 </div>
 
@@ -128,11 +144,11 @@
                                             <label class="form-label fw-semibold text-muted small text-uppercase">Número
                                                 de Documento</label>
                                              <input type="text" name="numero_documento" class="form-control custom-input bg-light"
-                                                value="{{ old('numero_documento', auth()->user()->cedula) }}" placeholder="1234567890" readonly required>
+                                                value="{{ old('numero_documento', auth()->user()->numero_documento) }}" placeholder="Ej: 1018..." readonly required>
                                         </div>
                                         <div class="col-md-12">
                                              @php
-                                                $userRol = auth()->user()->rol;
+                                                $userRol = auth()->user()->role;
                                                 $cargoValue = ($userRol === 'contratista' || $userRol === 'supervisor_contrato') ? 'Contratista' : 'Servidor_Publico';
                                                 $cargoLabel = $cargoValue === 'Contratista' ? 'Contratista (Planta)' : 'Servidor Público';
                                              @endphp
@@ -156,7 +172,7 @@
                                     <div class="row g-3">
                                         <div class="col-md-4">
                                             <label class="form-label fw-semibold text-muted small text-uppercase">Número de Contrato</label>
-                                            <input type="text" class="form-control custom-input bg-light" value="{{ $user->numero_contrato }}" readonly>
+                                            <input type="text" class="form-control custom-input bg-light" value="{{ last(explode('.', $user->numero_contrato)) }}" readonly>
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label fw-semibold text-muted small text-uppercase">Año</label>
@@ -388,7 +404,7 @@
                                     </button>
                                     <button type="submit"
                                         class="btn btn-warning btn-lg flex-grow-2 rounded-4 py-3 fw-bold shadow hover-grow">
-                                        <i class="fas fa-save me-2"></i> Guardar Correcciones
+                                        <i class="fas fa-save me-2"></i> {{ strtoupper($agenda->estado->nombre) == 'BORRADOR' ? 'Guardar Edición' : 'Guardar Correcciones' }}
                                     </button>
                                 @else
                                     <button type="submit"
@@ -766,15 +782,22 @@
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         <script>
             // Pasar estado al JS
-            window.agendaConfig = {
-                esEdicion: {{ isset($agenda) ? 'true' : 'false' }},
-                tieneFirma: {{ (isset($agenda) && $agenda->firma_contratista) ? 'true' : 'false' }}
-            };
+                                            window.agendaConfig = {
+                                                esEdicion: {{ isset($agenda) ? 'true' : 'false' }},
+                                                estado: "{{ isset($agenda) ? strtoupper($agenda->estado->nombre) : '' }}",
+                                                tieneFirma: {{ (isset($agenda) && $agenda->firma_contratista) ? 'true' : 'false' }}
+                                            };
 
             function confirmarRegresar() {
+                const esBorrador = window.agendaConfig.estado === 'BORRADOR';
+                const titulo = '¿Está seguro?';
+                const texto = esBorrador 
+                    ? "¿Desea dejar de editar la agenda? Los cambios no guardados se perderán."
+                    : "¿Desea dejar de corregir la agenda? Los cambios no guardados se perderán.";
+
                 Swal.fire({
-                    title: '¿Está seguro?',
-                    text: "¿Desea dejar de corregir la agenda? Los cambios no guardados se perderán.",
+                    title: titulo,
+                    text: texto,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#39a900',
@@ -787,7 +810,7 @@
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        window.location.href = "{{ route('reportar-dia') }}";
+                        window.location.href = "{{ session('back_url_reportar_dia', route('reportar-dia')) }}";
                     }
                 });
             }

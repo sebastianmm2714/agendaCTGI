@@ -5,7 +5,7 @@
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-4 py-3">Folio</th>
-                        <th>Funcionario</th>
+                        <th>Contratista / Instructor</th>
                         <th>Municipio Destino</th>
                         <th>Fecha Registro</th>
                         @if($tipo == 'devueltas')

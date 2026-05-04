@@ -1,0 +1,56 @@
+REGISTRO DE CAMBIOS - 28/04/2026
+--------------------------------------------------
+
+PROYECTO: AgendaCTGI
+OBJETIVO: Seguridad, Reparación de Firmas y Optimización de Viáticos.
+
+1. SEGURIDAD Y ACCESO:
+   - Desactivación de registro público de usuarios.
+   - Implementación de control de acceso (CANDADO) para PDFs y Reportes (evita IDOR).
+   - Restricción de gestión de personal en Viáticos (Solo contratistas).
+
+   ARCHIVOS MODIFICADOS:
+   - routes/auth.php
+   - app/Http/Controllers/FormularioController.php
+   - app/Http/Controllers/ReportesController.php
+   - app/Http/Controllers/ViaticosPersonalController.php
+
+2. SISTEMA DE FIRMAS DIGITALES:
+   - Implementación de creación automática de Storage Link (Symlink) para cPanel.
+   - Creación de Helper Global Base64 para carga de firmas sin errores 404.
+   - Estandarización de prefijos 'firmas/' en base de datos.
+   - Ajuste de diseño en Dashboard (centrado y previsualización).
+   - Ajuste de escalado (max-width) en PDF para evitar desbordes.
+
+   ARCHIVOS MODIFICADOS:
+   - app/Providers/AppServiceProvider.php
+   - app/Http/Controllers/ProfileController.php
+   - resources/views/agenda/pdf.blade.php
+   - resources/views/layouts/dashboard.blade.php
+
+3. MÓDULO DE VIÁTICOS Y PERSONAL:
+   - Actualización de valor ENTRETERMINAL (de 53.096 a 56.813).
+   - Conversión de "Gestión de Personal" a vista de solo lectura para perfil Viáticos.
+   - Corrección de errores de sintaxis en JavaScript del panel de personal.
+
+   ARCHIVOS MODIFICADOS:
+   - app/Http/Controllers/ViaticosController.php
+   - resources/views/viaticos/personal/index.blade.php
+
+4. MÓDULO DE REPORTES (Supervisores):
+   - Habilitación de "Super-Eliminación" de agendas (cualquier estado).
+   - Implementación de confirmación SweetAlert para borrado permanente.
+
+   ARCHIVOS MODIFICADOS:
+   - routes/web.php
+   - app/Http/Controllers/ReportesController.php
+   - resources/views/reportes/index.blade.php
+
+5. CORRECCIONES EN PDF:
+   - Reparación de lógica de transporte de regreso: ahora busca en todas las actividades para evitar campos vacíos en agendas de múltiples días.
+
+   ARCHIVOS MODIFICADOS:
+   - resources/views/agenda/pdf.blade.php
+
+--------------------------------------------------
+SISTEMA 100% FUNCIONAL EN LOCAL Y DESPLEGADO.

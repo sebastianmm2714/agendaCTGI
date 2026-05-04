@@ -67,7 +67,7 @@
                             <i class="fas fa-search text-primary"></i>
                         </span>
                         <input type="text" name="search" class="form-control border-start-0 ps-0 fw-medium" 
-                               placeholder="Buscar por funcionario, CC, fecha (DD/MM/YYYY) o destino..." 
+                               placeholder="Buscar por líder de proceso, CC, fecha (DD/MM/YYYY) o destino..." 
                                value="{{ request('search') }}"
                                style="font-size: 0.95rem;">
                         @if(request('search'))
@@ -167,7 +167,7 @@
         $('.form-autorizar-agenda').on('submit', function(e) {
             @php
                 $user = auth()->user();
-                $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
+                $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
                 $actualHasFirma = (!empty($user->firma) && $funcionario && !empty($funcionario->firma)) ? 'true' : 'false';
             @endphp
             const hasFirma = {{ $actualHasFirma }};

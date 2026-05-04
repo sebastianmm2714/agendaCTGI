@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Funcionario extends Model
+class LiderDeProceso extends Model
 {
     use HasFactory;
+
+    protected $table = 'lideres_de_proceso';
 
     protected $fillable = [
         'nombre',
@@ -16,6 +18,7 @@ class Funcionario extends Model
         'numero_documento',
         'cargo',
         'tipo',
+        'numero_cuenta_tipo',
         'firma',
     ];
 

@@ -16,7 +16,7 @@
                             <p class="text-muted mb-0">Agenda #{{ $agenda->id }} - {{ $agenda->ruta }}</p>
                         </div>
                     </div>
-                    <a href="{{ auth()->user()->role == 'contratista' ? route('reportar-dia') : route('reportes') }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold hover-grow">
+                    <a href="{{ session('back_url_reportar_dia', auth()->user()->role == 'contratista' ? route('reportar-dia') : route('reportes')) }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold hover-grow">
                         <i class="fas fa-arrow-left me-2"></i>Volver
                     </a>
                 </div>
@@ -53,11 +53,12 @@
                                 <div class="bg-success p-2 rounded-3 me-3">
                                     <i class="fas fa-calendar-plus text-white"></i>
                                 </div>
-                                <h5 class="fw-bold mb-0 text-dark">Nueva Actividad</h5>
+                                <h5 class="fw-bold mb-0 text-dark" id="form-title">Nueva Actividad</h5>
                             </div>
                             <div class="card-body p-4 pt-0">
-                                <form method="POST" action="{{ route('agenda.actividad.store', $agenda->id) }}" novalidate>
+                                <form method="POST" action="{{ route('agenda.actividad.store', $agenda->id) }}" id="actividad-form" novalidate>
                                     @csrf
+                                    <input type="hidden" name="actividad_id" id="actividad_id">
                                     <div class="row g-4">
                                         <div class="col-md-6">
                                             <div class="row g-3">
@@ -92,29 +93,29 @@
                                                 </div>
                                             </div>
                                             
-                                            @if($agenda->actividades->count() == 0)
-                                            <label class="form-label fw-semibold text-muted small text-uppercase">Medio de Transporte (Ida)</label>
-                                            <div class="d-flex flex-wrap gap-2">
-                                                <div class="transport-option">
-                                                    <input type="checkbox" name="transporte_ida[]" value="aereo" id="ti-aereo" class="btn-check">
-                                                    <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="ti-aereo">
-                                                        <i class="fas fa-plane me-2"></i>Aéreo
-                                                    </label>
-                                                </div>
-                                                <div class="transport-option">
-                                                    <input type="checkbox" name="transporte_ida[]" value="terrestre" id="ti-terrestre" class="btn-check">
-                                                    <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="ti-terrestre">
-                                                        <i class="fas fa-bus me-2"></i>Terrestre
-                                                    </label>
-                                                </div>
-                                                <div class="transport-option">
-                                                    <input type="checkbox" name="transporte_ida[]" value="fluvial" id="ti-fluvial" class="btn-check">
-                                                    <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="ti-fluvial">
-                                                        <i class="fas fa-ship me-2"></i>Fluvial
-                                                    </label>
+                                            <div id="section-transporte-ida" style="display: {{ $agenda->actividades->count() == 0 ? 'block' : 'none' }};">
+                                                <label class="form-label fw-semibold text-muted small text-uppercase">Medio de Transporte (Ida)</label>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <div class="transport-option">
+                                                        <input type="checkbox" name="transporte_ida[]" value="aereo" id="ti-aereo" class="btn-check">
+                                                        <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="ti-aereo">
+                                                            <i class="fas fa-plane me-2"></i>Aéreo
+                                                        </label>
+                                                    </div>
+                                                    <div class="transport-option">
+                                                        <input type="checkbox" name="transporte_ida[]" value="terrestre" id="ti-terrestre" class="btn-check">
+                                                        <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="ti-terrestre">
+                                                            <i class="fas fa-bus me-2"></i>Terrestre
+                                                        </label>
+                                                    </div>
+                                                    <div class="transport-option">
+                                                        <input type="checkbox" name="transporte_ida[]" value="fluvial" id="ti-fluvial" class="btn-check">
+                                                        <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="ti-fluvial">
+                                                            <i class="fas fa-ship me-2"></i>Fluvial
+                                                        </label>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            @endif
                                         </div>
 
                                         <div class="col-md-6 mb-3">
@@ -130,29 +131,29 @@
                                                 </div>
                                             </div>
 
-                                            @if($agenda->actividades->count() == 0)
-                                            <label class="form-label fw-semibold text-muted small text-uppercase">Medio de Transporte (Regreso)</label>
-                                            <div class="d-flex flex-wrap gap-2">
-                                                <div class="transport-option">
-                                                    <input type="checkbox" name="transporte_regreso[]" value="aereo" id="tr-aereo" class="btn-check">
-                                                    <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="tr-aereo">
-                                                        <i class="fas fa-plane me-2"></i>Aéreo
-                                                    </label>
-                                                </div>
-                                                <div class="transport-option">
-                                                    <input type="checkbox" name="transporte_regreso[]" value="terrestre" id="tr-terrestre" class="btn-check">
-                                                    <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="tr-terrestre">
-                                                        <i class="fas fa-bus me-2"></i>Terrestre
-                                                    </label>
-                                                </div>
-                                                <div class="transport-option">
-                                                    <input type="checkbox" name="transporte_regreso[]" value="fluvial" id="tr-fluvial" class="btn-check">
-                                                    <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="tr-fluvial">
-                                                        <i class="fas fa-ship me-2"></i>Fluvial
-                                                    </label>
+                                            <div id="section-transporte-regreso" style="display: {{ $agenda->actividades->count() == 0 ? 'block' : 'none' }};">
+                                                <label class="form-label fw-semibold text-muted small text-uppercase">Medio de Transporte (Regreso)</label>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <div class="transport-option">
+                                                        <input type="checkbox" name="transporte_regreso[]" value="aereo" id="tr-aereo" class="btn-check">
+                                                        <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="tr-aereo">
+                                                            <i class="fas fa-plane me-2"></i>Aéreo
+                                                        </label>
+                                                    </div>
+                                                    <div class="transport-option">
+                                                        <input type="checkbox" name="transporte_regreso[]" value="terrestre" id="tr-terrestre" class="btn-check">
+                                                        <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="tr-terrestre">
+                                                            <i class="fas fa-bus me-2"></i>Terrestre
+                                                        </label>
+                                                    </div>
+                                                    <div class="transport-option">
+                                                        <input type="checkbox" name="transporte_regreso[]" value="fluvial" id="tr-fluvial" class="btn-check">
+                                                        <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="tr-fluvial">
+                                                            <i class="fas fa-ship me-2"></i>Fluvial
+                                                        </label>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            @endif
                                         </div>
 
                                         <div class="col-12">
@@ -188,8 +189,7 @@
                                         </div>
 
 
-                                        @if($agenda->actividades->count() == 0)
-                                        <div class="col-12 mt-3">
+                                        <div class="col-12 mt-3" id="section-liquidacion" style="display: {{ $agenda->actividades->count() == 0 ? 'block' : 'none' }};">
                                             <div class="card border-0 rounded-4 shadow-sm" style="background-color: #fcfcfc;">
                                                 <div class="card-body p-4">
                                                     <h6 class="fw-bold mb-3 text-dark d-flex align-items-center">
@@ -221,12 +221,15 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        @endif
 
                                         <div class="col-12 mt-4 text-center">
                                             <div class="d-flex justify-content-center gap-3">
-                                                <button type="submit" class="btn btn-success rounded-pill px-5 py-3 fw-bold shadow-sm hover-grow">
+                                                <button type="submit" class="btn btn-success rounded-pill px-5 py-3 fw-bold shadow-sm hover-grow" id="btn-save-actividad">
                                                     <i class="fas fa-save me-2"></i>Guardar Actividad
+                                                </button>
+                                                
+                                                <button type="button" class="btn btn-outline-danger rounded-pill px-5 py-3 fw-bold shadow-sm hover-grow" id="btn-cancel-edit" style="display: none;">
+                                                    <i class="fas fa-times me-2"></i>Cancelar Edición
                                                 </button>
 
                                                 @php
@@ -261,70 +264,98 @@
                                 @if($agenda->actividades->count() > 0)
                                     <div class="table-responsive">
                                         <table class="table table-hover align-middle mb-0 custom-table">
-                                            <thead class="bg-light">
+                                            <thead style="background-color: #f8fafc;">
                                                 <tr>
-                                                    <th class="ps-4 py-3 text-muted small text-uppercase fw-bold">Fecha</th>
-                                                    <th class="py-3 text-muted small text-uppercase fw-bold">Actividades</th>
-                                                    <th class="py-3 text-muted small text-uppercase fw-bold">Transporte</th>
-                                                    <th class="py-3 text-muted small text-uppercase fw-bold">Liquidación</th>
-                                                    <th class="pe-4 py-3 text-end text-muted small text-uppercase fw-bold">Estado</th>
+                                                    <th class="ps-4 py-3 text-muted small text-uppercase fw-bold" style="width: 120px;">Fecha</th>
+                                                    <th class="py-3 text-muted small text-uppercase fw-bold">Actividades Ejecutadas</th>
+                                                    <th class="py-3 text-muted small text-uppercase fw-bold" style="width: 180px;">Transporte</th>
+                                                    <th class="py-3 text-muted small text-uppercase fw-bold" style="width: 200px;">Liquidación</th>
+                                                    <th class="py-3 text-center text-muted small text-uppercase fw-bold" style="width: 130px;">Estado</th>
+                                                    <th class="pe-4 py-3 text-end text-muted small text-uppercase fw-bold" style="width: 120px;">Acciones</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 @foreach($agenda->actividades as $actividad)
-                                                    <tr>
-                                                        <td class="ps-4 fw-bold text-dark">{{ $actividad->fecha->format('Y-m-d') }}</td>
-                                                        <td>
-                                                            <div class="text-dark">
+                                                    <tr class="border-bottom border-light">
+                                                        <td class="ps-4 fw-bold text-dark" style="vertical-align: middle;">
+                                                            {{ $actividad->fecha->format('Y-m-d') }}
+                                                        </td>
+                                                        <td style="vertical-align: middle;">
+                                                            <div class="text-dark py-1">
                                                                 @php $ejecutadas = $actividad->actividad; @endphp
                                                                 @if(is_array($ejecutadas))
-                                                                    <div class="d-flex flex-column gap-1">
+                                                                    <table class="table table-borderless table-sm mb-0">
                                                                         @foreach($ejecutadas as $item)
-                                                                            <div class="d-flex align-items-center gap-2">
-                                                                                <span class="badge bg-light text-success border border-success border-opacity-10 fw-normal py-1" style="min-width: 75px;">{{ $item['hora'] ?? '' }}</span>
-                                                                                <span class="small">{{ $item['actividad'] ?? '' }}</span>
-                                                                            </div>
+                                                                            <tr>
+                                                                                <td class="p-0 pe-2 pb-1" style="width: 100px;">
+                                                                                    <span class="badge bg-light text-success border border-success border-opacity-10 fw-normal py-1 w-100" style="font-size: 0.72rem;">
+                                                                                        {{ $item['hora'] ?? '' }}
+                                                                                    </span>
+                                                                                </td>
+                                                                                <td class="p-0 pb-1">
+                                                                                    <span class="small text-dark d-block" style="line-height: 1.2;">
+                                                                                        {{ $item['actividad'] ?? '' }}
+                                                                                    </span>
+                                                                                </td>
+                                                                            </tr>
                                                                         @endforeach
-                                                                    </div>
+                                                                    </table>
                                                                 @else
-                                                                    {{ $actividad->actividad }}
+                                                                    <span class="small">{{ $actividad->actividad }}</span>
                                                                 @endif
                                                             </div>
                                                         </td>
-                                                        <td>
-                                                            <div class="d-flex flex-column gap-1">
-                                                                <div class="small"><i class="fas fa-arrow-right text-success me-1 small"></i> <span class="text-muted">Ida:</span> 
-                                                                    @php $ti = $actividad->transporte_ida ?? $actividad->medios_transporte ?? []; @endphp
-                                                                    @foreach(is_array($ti) ? $ti : [$ti] as $medio)
-                                                                        <span class="badge bg-light text-dark border-0 fw-normal">{{ ucfirst($medio) }}</span>
+                                                        <td style="vertical-align: middle;">
+                                                            <div class="d-flex flex-column gap-1 py-1">
+                                                                <div class="small">
+                                                                    <span class="text-success fw-bold">→</span> <span class="text-muted">Ida:</span> 
+                                                                    @php $ti = $actividad->transporte_ida ?? []; @endphp
+                                                                    @foreach($ti as $medio)
+                                                                        <span class="badge bg-light text-dark border-0 fw-normal px-2">{{ ucfirst($medio) }}</span>
                                                                     @endforeach
                                                                 </div>
-                                                                <div class="small"><i class="fas fa-arrow-left text-muted me-1 small"></i> <span class="text-muted">Regreso:</span> 
-                                                                    @php $tr = $actividad->transporte_regreso ?? $actividad->medios_transporte ?? []; @endphp
-                                                                    @foreach(is_array($tr) ? $tr : [$tr] as $medio)
-                                                                        <span class="badge bg-light text-dark border-0 fw-normal">{{ ucfirst($medio) }}</span>
+                                                                <div class="small">
+                                                                    <span class="text-muted fw-bold">←</span> <span class="text-muted">Regreso:</span> 
+                                                                    @php $tr = $actividad->transporte_regreso ?? []; @endphp
+                                                                    @foreach($tr as $medio)
+                                                                        <span class="badge bg-light text-dark border-0 fw-normal px-2">{{ ucfirst($medio) }}</span>
                                                                     @endforeach
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td>
+                                                        <td style="vertical-align: middle;">
                                                             @if($actividad->valor_aereo || $actividad->valor_terrestre || $actividad->valor_intermunicipal)
-                                                                <div class="d-flex flex-column gap-1">
-                                                                    @if($actividad->valor_aereo) <span class="small text-muted">Aéreo: <span class="text-dark fw-bold">${{ $actividad->valor_aereo }}</span></span> @endif
-                                                                    @if($actividad->valor_terrestre) <span class="small text-muted">Terr.: <span class="text-dark fw-bold">${{ $actividad->valor_terrestre }}</span></span> @endif
-                                                                    @if($actividad->valor_intermunicipal) <span class="small text-muted">Inter.: <span class="text-dark fw-bold">${{ $actividad->valor_intermunicipal }}</span></span> @endif
+                                                                <div class="d-flex flex-column gap-1 py-1">
+                                                                    @if($actividad->valor_aereo) <span class="small text-muted">Aéreo: <span class="text-dark fw-bold">${{ number_format($actividad->valor_aereo, 0, ',', '.') }}</span></span> @endif
+                                                                    @if($actividad->valor_terrestre) <span class="small text-muted">Terr.: <span class="text-dark fw-bold">${{ number_format($actividad->valor_terrestre, 0, ',', '.') }}</span></span> @endif
+                                                                    @if($actividad->valor_intermunicipal) <span class="small text-muted">Inter.: <span class="text-dark fw-bold">${{ number_format($actividad->valor_intermunicipal, 0, ',', '.') }}</span></span> @endif
                                                                 </div>
                                                             @else
                                                                 <span class="text-muted small">N/A</span>
                                                             @endif
                                                         </td>
-                                                        <td class="pe-4 text-end">
+                                                        <td class="text-center" style="vertical-align: middle;">
                                                             <span class="badge rounded-pill px-3 py-2 fw-normal" style="background-color: #f0f7ed; color: #39a900; border: 1px solid #e1f0d7;">
                                                                 <i class="fas fa-check-circle me-1"></i>Reportado
                                                             </span>
                                                         </td>
+                                                        <td class="pe-4 text-end" style="vertical-align: middle;">
+                                                            <button type="button" 
+                                                                    class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold btn-edit-actividad"
+                                                                    data-id="{{ $actividad->id }}"
+                                                                    data-fecha="{{ $actividad->fecha->format('Y-m-d') }}"
+                                                                    data-actividades='@json($actividad->actividad)'
+                                                                    data-ti='@json($actividad->transporte_ida ?? [])'
+                                                                    data-tr='@json($actividad->transporte_regreso ?? [])'
+                                                                    data-va="{{ (int)$actividad->valor_aereo }}"
+                                                                    data-vt="{{ (int)$actividad->valor_terrestre }}"
+                                                                    data-vi="{{ (int)$actividad->valor_intermunicipal }}">
+                                                                <i class="fas fa-edit me-1"></i>Editar
+                                                            </button>
+                                                        </td>
                                                     </tr>
                                                 @endforeach
+
                                             </tbody>
                                         </table>
                                     </div>
@@ -605,6 +636,28 @@
                 }
             });
 
+            // --- Lógica de Visibilidad según Fecha de Inicio ---
+            const fechaInicioAgenda = "{{ $agenda->fecha_inicio->format('Y-m-d') }}";
+
+            function toggleTransporteYLiquidacion(fechaSeleccionada) {
+                const esPrimerDia = (fechaSeleccionada === fechaInicioAgenda);
+                const action = esPrimerDia ? 'fadeIn' : 'fadeOut';
+                
+                $('#section-transporte-ida, #section-transporte-regreso, #section-liquidacion')[action]();
+                
+                if (!esPrimerDia) {
+                    // Resetear inputs si se ocultan
+                    $('input[name="transporte_ida[]"], input[name="transporte_regreso[]"]').prop('checked', false);
+                    $('input[name="valor_aereo"], input[name="valor_terrestre"], input[name="valor_intermunicipal"]').val('');
+                    $('.transport-option input').first().trigger('change');
+                }
+            }
+
+            // Escuchar cambios en la fecha
+            $('input[name="fecha"]').on('change', function() {
+                toggleTransporteYLiquidacion($(this).val());
+            });
+
             // --- Lógica de Reloj Bonito (Flatpickr) ---
             let currentTargetInput = null;
 
@@ -823,13 +876,13 @@
 
                 // Validar Transporte (Solo si están visibles - primer día)
                 const $ti = $('input[name="transporte_ida[]"]');
-                if ($ti.length && !$('input[name="transporte_ida[]"]:checked').length) {
+                if ($('#section-transporte-ida').is(':visible') && !$ti.filter(':checked').length) {
                     showError($ti.closest('.d-flex'), 'Seleccione al menos un medio de transporte de ida.');
                     hasErrors = true;
                 }
 
                 const $tr = $('input[name="transporte_regreso[]"]');
-                if ($tr.length && !$('input[name="transporte_regreso[]"]:checked').length) {
+                if ($('#section-transporte-regreso').is(':visible') && !$tr.filter(':checked').length) {
                     showError($tr.closest('.d-flex'), 'Seleccione al menos un medio de transporte de regreso.');
                     hasErrors = true;
                 }
@@ -897,6 +950,144 @@
                         confirmButtonColor: '#39a900'
                     });
                 }
+            });
+
+            // Lógica para CARGAR datos en el formulario para EDITAR
+            $(document).on('click', '.btn-edit-actividad', function() {
+                const btn = $(this);
+                const id = btn.data('id');
+                const fecha = btn.data('fecha');
+                let actividades = btn.data('actividades');
+                let ti = btn.data('ti');
+                let tr = btn.data('tr');
+                const va = btn.data('va');
+                const vt = btn.data('vt');
+                const vi = btn.data('vi');
+
+                // Asegurar que sean arrays si vienen como string u objeto no iterable (PHP associative array)
+                function ensureArray(data) {
+                    if (!data) return [];
+                    if (typeof data === 'string') {
+                        try { data = JSON.parse(data); } catch(e) { return []; }
+                    }
+                    if (Array.isArray(data)) return data;
+                    if (typeof data === 'object') return Object.values(data);
+                    return [data];
+                }
+
+                actividades = ensureArray(actividades);
+                ti = ensureArray(ti);
+                tr = ensureArray(tr);
+
+                // 1. Cambiar UI del formulario
+                $('#actividad_id').val(id);
+                $('#form-title').text('Editando Actividad del ' + fecha);
+                $('#btn-save-actividad').html('<i class="fas fa-sync-alt me-2"></i>Actualizar Actividad').removeClass('btn-success').addClass('btn-warning');
+                $('#btn-cancel-edit').show();
+                
+                // Mostrar secciones de transporte y liquidación SOLO si es el primer día
+                toggleTransporteYLiquidacion(fecha);
+
+                // 2. Llenar campos básicos
+                $('input[name="fecha"]').val(fecha).attr('min', "{{ $agenda->fecha_inicio->format('Y-m-d') }}");
+
+                // 3. Limpiar y llenar actividades
+                $('#actividades-container').empty();
+                activityCount = 0;
+                actividades.forEach((act, index) => {
+                    if (index >= 5) return;
+                    const rowHtml = `
+                        <div class="row g-2 activity-row mb-3 animate__animated animate__fadeInUp animate__faster">
+                            <div class="col-md-3">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-0 cursor-pointer select-time-btn"><i class="far fa-clock text-muted"></i></span>
+                                    <input type="text" name="actividades[${index}][hora]" 
+                                           class="form-control custom-input time-picker" 
+                                           value="${act.hora || ''}"
+                                           readonly
+                                           required>
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="input-group">
+                                    <input type="text" name="actividades[${index}][actividad]" class="form-control custom-input" value="${act.actividad || ''}" required maxlength="160">
+                                    <button type="button" class="btn btn-outline-danger border-2 ms-2 remove-actividad" style="border-radius: 0.85rem;" ${actividades.length === 1 ? 'disabled' : ''}>
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    $('#actividades-container').append(rowHtml);
+                    activityCount++;
+                });
+
+                // 4. Transportes (Solo si la sección existe/es visible)
+                $('input[name="transporte_ida[]"]').prop('checked', false);
+                if (Array.isArray(ti)) {
+                    ti.forEach(val => $(`input[name="transporte_ida[]"][value="${val}"]`).prop('checked', true));
+                }
+                
+                $('input[name="transporte_regreso[]"]').prop('checked', false);
+                if (Array.isArray(tr)) {
+                    tr.forEach(val => $(`input[name="transporte_regreso[]"][value="${val}"]`).prop('checked', true));
+                }
+
+                // 5. Valores
+                $('input[name="valor_aereo"]').val(va || '').trigger('change');
+                $('input[name="valor_terrestre"]').val(vt || '').trigger('change');
+                $('input[name="valor_intermunicipal"]').val(vi || '').trigger('change');
+                
+                // Forzar trigger de cambio para mostrar wrappers de gastos si aplica
+                $('input[name="transporte_ida[]"]').first().trigger('change');
+
+                // Scroll suave al formulario
+                window.scrollTo({
+                    top: $('#actividad-form').offset().top - 100,
+                    behavior: 'smooth'
+                });
+            });
+
+            // Lógica para CANCELAR edición
+            $('#btn-cancel-edit').click(function() {
+                // Reset form basic
+                $('#actividad_id').val('');
+                $('#form-title').text('Nueva Actividad');
+                $('#btn-save-actividad').html('<i class="fas fa-save me-2"></i>Guardar Actividad').removeClass('btn-warning').addClass('btn-success');
+                $(this).hide();
+
+                // Restaurar visibilidad original de secciones basándose en la fecha por defecto
+                toggleTransporteYLiquidacion("{{ $proximaFecha }}");
+
+                // Reset inputs
+                $('input[name="fecha"]').val("{{ $proximaFecha }}").attr('min', "{{ $proximaFecha }}");
+                $('input[name="transporte_ida[]"], input[name="transporte_regreso[]"]').prop('checked', false);
+                $('input[name="valor_aereo"], input[name="valor_terrestre"], input[name="valor_intermunicipal"]').val('');
+                $('.transport-option input').first().trigger('change');
+
+                // Reset actividades container to original single empty row
+                $('#actividades-container').empty();
+                activityCount = 1;
+                $('#actividades-container').append(`
+                    <div class="row g-2 activity-row mb-3">
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0 cursor-pointer select-time-btn"><i class="far fa-clock text-muted"></i></span>
+                                <input type="text" name="actividades[0][hora]" class="form-control custom-input time-picker" placeholder="08:00 AM-09:00 AM" readonly required>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="input-group">
+                                <input type="text" name="actividades[0][actividad]" class="form-control custom-input" placeholder="Describa la actividad..." required maxlength="160">
+                                <button type="button" class="btn btn-outline-danger border-2 ms-2 remove-actividad" style="border-radius: 0.85rem;" disabled>
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `);
+                
+                clearAllErrors();
             });
 
             // Lógica para enviar la agenda desde esta vista

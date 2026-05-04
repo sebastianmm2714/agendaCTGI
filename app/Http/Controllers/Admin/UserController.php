@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\CategoriaPersonal;
-use App\Models\Funcionario;
+use App\Models\LiderDeProceso;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -30,8 +30,8 @@ class UserController extends Controller
         $users = $query->paginate($perPage)->appends($request->all());
             
         $categorias = CategoriaPersonal::orderBy('nombre')->get();
-        $supervisores = Funcionario::where('tipo', 'SUPERVISOR')->orderBy('nombre')->get();
-        $ordenadores = Funcionario::where('tipo', 'ORDENADOR')->orderBy('nombre')->get();
+        $supervisores = LiderDeProceso::where('tipo', 'SUPERVISOR')->orderBy('nombre')->get();
+        $ordenadores = LiderDeProceso::where('tipo', 'ORDENADOR')->orderBy('nombre')->get();
 
         return view('admin.usuarios.index', compact('users', 'categorias', 'supervisores', 'ordenadores'));
     }
@@ -46,7 +46,7 @@ class UserController extends Controller
             'tipo_documento' => 'required|string|max:20',
             'salario_honorarios' => 'nullable|numeric|min:0',
             'numero_cuenta_tipo' => 'nullable|string|max:100',
-            'role' => 'required|in:contratista,administrador,viaticos,funcionario',
+            'role' => 'required|in:contratista,administrador,viaticos,supervisor_contrato,ordenador_gasto',
             'categoria_personal_id' => 'required|exists:categorias_personal,id',
             'numero_contrato' => 'required|string|max:100',
             'anio_contrato' => 'required|numeric|digits:4',
@@ -84,7 +84,7 @@ class UserController extends Controller
             'tipo_documento' => 'required|string|max:20',
             'salario_honorarios' => 'nullable|numeric|min:0',
             'numero_cuenta_tipo' => 'nullable|string|max:100',
-            'role' => 'required|in:contratista,administrador,viaticos,funcionario',
+            'role' => 'required|in:contratista,administrador,viaticos,supervisor_contrato,ordenador_gasto',
             'categoria_personal_id' => 'required|exists:categorias_personal,id',
             'numero_contrato' => 'required|string|max:100',
             'anio_contrato' => 'required|numeric|digits:4',
@@ -92,9 +92,10 @@ class UserController extends Controller
             'objeto_contractual' => 'required|string',
         ]);
 
+        // Actualizar usuario. El UserObserver se encargará de sincronizar con 'lideres_de_proceso'.
         $usuario->update($request->all());
 
-        return back()->with('success', 'Usuario actualizado correctamente.');
+        return back()->with('success', 'Usuario actualizado correctamente en ambas tablas.');
     }
 
     public function destroy(User $usuario)

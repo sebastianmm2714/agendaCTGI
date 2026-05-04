@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\AgendaDesplazamiento;
-use App\Models\Funcionario;
+use App\Models\LiderDeProceso;
 
 class ViaticosController extends Controller
 {
@@ -65,7 +65,7 @@ class ViaticosController extends Controller
         $estadosDisponibles = \App\Models\EstadoAgenda::whereIn('nombre', ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA', 'CORRECCIÓN'])->get();
 
         // Obtener supervisores que tienen al menos una agenda aprobada
-        $supervisores = Funcionario::whereHas('agendas', function($q) {
+        $supervisores = LiderDeProceso::whereHas('agendas', function($q) {
             $q->whereHas('estado', function($e) {
                 $e->whereIn('nombre', ['APROBADA_VIATICOS', 'APROBADA']);
             });
@@ -112,6 +112,7 @@ class ViaticosController extends Controller
                 'estado_id' => $estadoCorreccion->id,
                 'observaciones_finanzas' => $request->observaciones
             ]);
+
             return redirect()->route('viaticos.index')->with('warning', 'Agenda devuelta al usuario para corrección.');
         }
 
@@ -210,7 +211,7 @@ class ViaticosController extends Controller
             $nroDias,
             '',  // VIATICO vacío
             $valorTransporte,
-            53096, // ENTRETERMINAL FIJO
+            56813, // ENTRETERMINAL FIJO
             '',  // TOTAL vacío
             $agenda->supervisor->nombre ?? 'N/A',
         ];
@@ -318,7 +319,7 @@ class ViaticosController extends Controller
                 $nroDias,
                 '',  // VIATICO
                 $valorTransporte,
-                53096, // ENTRETERMINAL FIJO
+                56813, // ENTRETERMINAL FIJO
                 '',  // TOTAL
                 $agenda->supervisor->nombre ?? 'N/A',
             ];

@@ -36,10 +36,10 @@ class DashboardController extends Controller
         if ($user->role === 'contratista') {
             $query->where('user_id', $user->id);
         } elseif ($user->role === 'supervisor_contrato') {
-            $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
+            $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
             $query->where('supervisor_id', $funcionario ? $funcionario->id : 0);
         } elseif ($user->role === 'ordenador_gasto') {
-            $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
+            $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
             $query->where('ordenador_id', $funcionario ? $funcionario->id : 0);
         }
         // Viáticos y Administrador ven todo (sin filtro adicional)

@@ -51,6 +51,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/reportes', [ReportesController::class , 'index'])->name('reportes');
     Route::get('/reportes-detalle/{agenda}', [ReportesController::class , 'show'])->name('reportes.show');
     Route::post('/reportes-detalle/{agenda}/guardar', [ReportarDiaController::class , 'store'])->name('agenda.actividad.store');
+    Route::delete('/reportes/{agenda}', [ReportesController::class, 'destroy'])->name('reportes.destroy');
 
     // 5.1 REPORTAR DÍA
     Route::get('/reportar-dia', [ReportarDiaController::class , 'index'])->name('reportar-dia');
@@ -110,7 +111,13 @@ Route::middleware('auth')->group(function () {
             // CRUD Usuarios y Funcionarios
             Route::get('/usuarios/check-document', [App\Http\Controllers\Admin\UserController::class, 'checkDocument'])->name('usuarios.checkDocument');
             Route::resource('usuarios', App\Http\Controllers\Admin\UserController::class);
-            Route::resource('funcionarios', App\Http\Controllers\Admin\FuncionarioController::class);
+            Route::resource('lideres_de_proceso', App\Http\Controllers\Admin\LiderDeProcesoController::class);
+
+            // Carga Masiva
+            Route::get('/carga-masiva', [App\Http\Controllers\Admin\CargaMasivaController::class, 'index'])->name('carga-masiva.index');
+            Route::post('/carga-masiva/importar', [App\Http\Controllers\Admin\CargaMasivaController::class, 'importar'])->name('carga-masiva.importar');
+            Route::get('/carga-masiva/descargar-reporte', [App\Http\Controllers\Admin\CargaMasivaController::class, 'descargarReporte'])->name('carga-masiva.descargar');
+            Route::get('/carga-masiva/descargar-historial/{id}', [App\Http\Controllers\Admin\CargaMasivaController::class, 'descargarReporteHistorial'])->name('carga-masiva.descargar_historial');
         });
     });
 

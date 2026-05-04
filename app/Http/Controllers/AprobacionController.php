@@ -12,7 +12,7 @@ class AprobacionController extends Controller
     {
         $user = auth()->user();
         
-        $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
+        $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
 
         if (!$funcionario) {
             return view('coordinador.index', [
@@ -72,7 +72,7 @@ class AprobacionController extends Controller
         $estadoAprobado = \App\Models\EstadoAgenda::where('nombre', 'APROBADA_SUPERVISOR')->first();
         $user = auth()->user();
 
-        $funcionario = \App\Models\Funcionario::where('numero_documento', $user->numero_documento)->first();
+        $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
         
         if (!$user->firma || !$funcionario || !$funcionario->firma) {
             return redirect()->back()->withErrors(['firma' => 'Debe registrar su firma digital en la sección "Mi Firma" antes de autorizar agendas.']);
@@ -83,7 +83,7 @@ class AprobacionController extends Controller
         // pero podemos simplemente actualizar el registro.
 
         if ($agenda->supervisor_id) {
-            \App\Models\Funcionario::where('id', $agenda->supervisor_id)->update(['firma' => $user->firma]);
+            \App\Models\LiderDeProceso::where('id', $agenda->supervisor_id)->update(['firma' => $user->firma]);
         }
 
         $agenda->update([

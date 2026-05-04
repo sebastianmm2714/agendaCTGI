@@ -174,14 +174,20 @@
                                                 $reporteCompleto = $diasReportados >= $diasTotal;
                                             @endphp
 
-                                            @if($agenda->estado && ($agenda->estado->nombre == 'CORRECCIÓN' || ($agenda->estado->nombre == 'ENVIADA' && $agenda->observaciones_finanzas)))
+                                            {{-- Lógica de Edición y Reporte para Borradores y Correcciones --}}
+                                            @if($agenda->estado && (strtoupper($agenda->estado->nombre) == 'BORRADOR' || $agenda->estado->nombre == 'CORRECCIÓN' || ($agenda->estado->nombre == 'ENVIADA' && $agenda->observaciones_finanzas)))
+                                                
+                                                {{-- Botón Editar/Corregir --}}
                                                 <a href="{{ route('formulario', $agenda->id) }}"
-                                                   class="btn btn-sm btn-warning rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center">
-                                                    <i class="fas fa-edit me-1"></i> Corregir
+                                                   class="btn btn-sm {{ strtoupper($agenda->estado->nombre) == 'BORRADOR' ? 'btn-outline-warning' : 'btn-warning' }} rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center"
+                                                   title="Editar los datos básicos de la agenda">
+                                                    <i class="fas fa-edit me-1"></i> {{ strtoupper($agenda->estado->nombre) == 'BORRADOR' ? 'Editar' : 'Corregir' }}
                                                 </a>
-                                            @elseif((!$agenda->estado || strtoupper($agenda->estado->nombre) == 'BORRADOR') && !$reporteCompleto)
+
+                                                {{-- Botón Reportar --}}
                                                 <a href="{{ route('reportar-dia.show', $agenda->id) }}"
-                                                   class="btn btn-sm btn-success rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center">
+                                                   class="btn btn-sm btn-success rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center"
+                                                   title="Gestionar el reporte de actividades diarias">
                                                     <i class="fas fa-calendar-plus me-1"></i> Reportar
                                                 </a>
                                             @endif

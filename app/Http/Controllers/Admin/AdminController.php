@@ -7,7 +7,7 @@ use App\Models\AgendaDesplazamiento;
 use App\Models\EstadoAgenda;
 use App\Models\CategoriaPersonal;
 use App\Models\User;
-use App\Models\Funcionario;
+use App\Models\LiderDeProceso;
 use App\Models\ObligacionContrato;
 use Illuminate\Http\Request;
 
@@ -34,7 +34,7 @@ class AdminController extends Controller
                 $q->where('nombre', 'APROBADA');
             })->count(),
             'total_usuarios' => User::count(),
-            'total_funcionarios' => Funcionario::count(),
+            'total_lideres' => LiderDeProceso::count(),
         ];
 
         // Query Builder for Agendas

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 class ViaticosPersonalController extends Controller
 {
     /**
-     * Muestra la lista de personal (contratistas y funcionarios)
+     * Muestra la lista de personal (contratistas y líderes de proceso)
      */
     public function index(Request $request)
     {
@@ -18,7 +18,7 @@ class ViaticosPersonalController extends Controller
         $role    = $request->get('role');
         $vinculacion = $request->get('vinculacion');
 
-        $users = User::whereIn('role', ['contratista', 'supervisor_contrato', 'ordenador_gasto', 'viaticos'])
+        $users = User::where('role', 'contratista')
             ->with(['categoria', 'supervisor', 'ordenador'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sq) use ($search) {
@@ -40,8 +40,8 @@ class ViaticosPersonalController extends Controller
             ->appends($request->all());
 
         $categorias = \App\Models\CategoriaPersonal::orderBy('nombre')->get();
-        $supervisores = \App\Models\Funcionario::where('tipo', 'SUPERVISOR')->orderBy('nombre')->get();
-        $ordenadores = \App\Models\Funcionario::where('tipo', 'ORDENADOR')->orderBy('nombre')->get();
+        $supervisores = \App\Models\LiderDeProceso::where('tipo', 'SUPERVISOR')->orderBy('nombre')->get();
+        $ordenadores = \App\Models\LiderDeProceso::where('tipo', 'ORDENADOR')->orderBy('nombre')->get();
 
         return view('viaticos.personal.index', compact('users', 'categorias', 'supervisores', 'ordenadores'));
     }
@@ -65,8 +65,8 @@ class ViaticosPersonalController extends Controller
             'anio_contrato'         => 'required|numeric|digits:4',
             'fecha_vencimiento'     => 'required|date',
             'objeto_contractual'    => 'required|string',
-            'supervisor_id'         => 'nullable|exists:funcionarios,id',
-            'ordenador_id'          => 'nullable|exists:funcionarios,id',
+            'supervisor_id'         => 'nullable|exists:lideres_de_proceso,id',
+            'ordenador_id'          => 'nullable|exists:lideres_de_proceso,id',
         ]);
 
         User::create([
@@ -96,6 +96,12 @@ class ViaticosPersonalController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        // Seguridad: Solo permitir editar si el usuario es contratista
+        if ($user->role !== 'contratista') {
+            return redirect()->route('viaticos.personal.index')
+                ->with('error', 'No tiene permisos para editar a este tipo de personal.');
+        }
+
         $request->validate([
             'name'                  => 'required|string|max:255',
             'email'                 => 'required|email|unique:users,email,' . $user->id,
@@ -109,8 +115,8 @@ class ViaticosPersonalController extends Controller
             'anio_contrato'         => 'required|numeric|digits:4',
             'fecha_vencimiento'     => 'required|date',
             'objeto_contractual'    => 'required|string',
-            'supervisor_id'         => 'nullable|exists:funcionarios,id',
-            'ordenador_id'          => 'nullable|exists:funcionarios,id',
+            'supervisor_id'         => 'nullable|exists:lideres_de_proceso,id',
+            'ordenador_id'          => 'nullable|exists:lideres_de_proceso,id',
         ]);
 
         $user->update($request->all());
@@ -124,6 +130,12 @@ class ViaticosPersonalController extends Controller
      */
     public function destroy(User $user)
     {
+        // Seguridad: Solo permitir eliminar si el usuario es contratista
+        if ($user->role !== 'contratista') {
+            return redirect()->route('viaticos.personal.index')
+                ->with('error', 'No tiene permisos para eliminar a este tipo de personal.');
+        }
+
         // Seguridad: No permitir eliminar si tiene agendas relacionadas (histórico)
         if ($user->agendas()->count() > 0) {
             return redirect()->route('viaticos.personal.index')

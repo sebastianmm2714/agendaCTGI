@@ -21,11 +21,11 @@ class ReportarDiaController extends Controller
 
         // Búsqueda inteligente
         if ($request->filled('search')) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('ruta', 'like', "%$search%")
-                  ->orWhere('destinos', 'like', "%$search%")
-                  ->orWhereRaw("DATE_FORMAT(fecha_inicio, '%d/%m/%Y') LIKE ?", ["%$search%"])
-                  ->orWhereRaw("DATE_FORMAT(fecha_fin, '%d/%m/%Y') LIKE ?", ["%$search%"]);
+                    ->orWhere('destinos', 'like', "%$search%")
+                    ->orWhereRaw("DATE_FORMAT(fecha_inicio, '%d/%m/%Y') LIKE ?", ["%$search%"])
+                    ->orWhereRaw("DATE_FORMAT(fecha_fin, '%d/%m/%Y') LIKE ?", ["%$search%"]);
             });
         }
 
@@ -35,7 +35,8 @@ class ReportarDiaController extends Controller
         }
 
         $agendas = $query->paginate($perPage)->appends($request->all());
-        
+        session(['back_url_reportar_dia' => $request->fullUrl()]);
+
         // Obtener estados para el filtro
         $estados = \App\Models\EstadoAgenda::all();
 
@@ -86,6 +87,9 @@ class ReportarDiaController extends Controller
             }
         }
 
+        // Determinar si es el primer día de la agenda
+        $esPrimerDia = $request->fecha === $agenda->fecha_inicio->format('Y-m-d');
+
         // Validaciones
         $request->validate([
             'fecha' => [
@@ -94,8 +98,8 @@ class ReportarDiaController extends Controller
                 'after_or_equal:' . $agenda->fecha_inicio->format('Y-m-d'),
                 'before_or_equal:' . $agenda->fecha_fin->format('Y-m-d'),
             ],
-            'transporte_ida' => ($agenda->actividades->count() == 0 ? 'required' : 'nullable') . '|array',
-            'transporte_regreso' => ($agenda->actividades->count() == 0 ? 'required' : 'nullable') . '|array',
+            'transporte_ida' => ($esPrimerDia ? 'required' : 'nullable') . '|array',
+            'transporte_regreso' => ($esPrimerDia ? 'required' : 'nullable') . '|array',
             'actividades' => 'required|array',
             'valor_aereo' => 'nullable|numeric|min:0',
             'valor_terrestre' => 'nullable|numeric|min:0',
@@ -106,16 +110,20 @@ class ReportarDiaController extends Controller
             'fecha.after_or_equal' => 'Solo puede reportar días en el lapso de los días hábiles del desplazamiento (desde ' . $agenda->fecha_inicio->format('d/m/Y') . ').',
             'fecha.before_or_equal' => 'Solo puede reportar días en el lapso de los días hábiles del desplazamiento (hasta ' . $agenda->fecha_fin->format('d/m/Y') . ').',
             'actividades.required' => 'Debe agregar al menos una actividad.',
+            'transporte_ida.required' => 'El transporte de ida es obligatorio para el primer día.',
+            'transporte_regreso.required' => 'El transporte de regreso es obligatorio para el primer día.',
         ]);
 
         // Validar solapamientos de horas en el reporte
         $ranges = [];
         foreach ($request->actividades as $index => $act) {
             $hora = $act['hora'] ?? '';
-            if (empty($hora)) continue;
+            if (empty($hora))
+                continue;
 
             $parts = explode('-', $hora);
-            if (count($parts) !== 2) continue;
+            if (count($parts) !== 2)
+                continue;
 
             $start = $this->timeToMinutes(trim($parts[0]));
             $end = $this->timeToMinutes(trim($parts[1]));
@@ -133,21 +141,38 @@ class ReportarDiaController extends Controller
             $ranges[] = ['start' => $start, 'end' => $end];
         }
 
-        // Crear la actividad
-        $agenda->actividades()->create([
+        // Preparar datos para Guardar/Actualizar
+        $data = [
             'fecha' => $request->fecha,
-            'ruta_ida' => $request->ruta_ida,
-            'ruta_regreso' => $request->ruta_regreso,
-            'transporte_ida' => $request->transporte_ida,
-            'transporte_regreso' => $request->transporte_regreso,
             'actividad' => $request->actividades,
-            'valor_aereo' => $request->valor_aereo ?? 0,
-            'valor_terrestre' => $request->valor_terrestre ?? 0,
-            'valor_intermunicipal' => $request->valor_intermunicipal ?? 0,
-        ]);
+            // Solo guardar transporte y liquidación si es el primer día
+            'ruta_ida' => $esPrimerDia ? $request->ruta_ida : null,
+            'ruta_regreso' => $esPrimerDia ? $request->ruta_regreso : null,
+            'transporte_ida' => $esPrimerDia ? $request->transporte_ida : [],
+            'transporte_regreso' => $esPrimerDia ? $request->transporte_regreso : [],
+            'valor_aereo' => $esPrimerDia ? ($request->valor_aereo ?? 0) : 0,
+            'valor_terrestre' => $esPrimerDia ? ($request->valor_terrestre ?? 0) : 0,
+            'valor_intermunicipal' => $esPrimerDia ? ($request->valor_intermunicipal ?? 0) : 0,
+        ];
+
+        if ($request->filled('actividad_id')) {
+            // ACTUALIZAR actividad existente
+            $actividad = $agenda->actividades()->findOrFail($request->actividad_id);
+            $actividad->update($data);
+            $mensaje = 'Día actualizado correctamente.';
+        } else {
+            // CREAR nueva actividad (Validar que no se reporte el mismo día dos veces)
+            $existe = $agenda->actividades()->where('fecha', $request->fecha)->exists();
+            if ($existe) {
+                return back()->withInput()->withErrors(['fecha' => 'Este día ya ha sido reportado. Use la opción editar si desea cambiarlo.']);
+            }
+
+            $agenda->actividades()->create($data);
+            $mensaje = 'Día reportado correctamente.';
+        }
 
         return redirect()->route(auth()->user()->role == 'administrador' ? 'reportes.show' : 'reportar-dia.show', $agenda->id)
-            ->with('success', 'Día reportado correctamente.');
+            ->with('success', $mensaje);
     }
 
     /**
@@ -176,11 +201,11 @@ class ReportarDiaController extends Controller
         // Actualizar estado a ENVIADA (Asumiendo que ENVIADA es un estado válido en catalogos)
         // O mejor buscar el ID del estado ENVIADA
         $estadoEnviada = \App\Models\EstadoAgenda::where('nombre', 'ENVIADA')->first();
-        
+
         $agenda->update([
             'estado_id' => $estadoEnviada->id,
             'firma_contratista_path' => auth()->user()->firma,
-            'observaciones_finanzas' => null 
+            'observaciones_finanzas' => null
         ]);
 
         return redirect()->route('reportar-dia')
@@ -192,15 +217,19 @@ class ReportarDiaController extends Controller
      */
     private function timeToMinutes($timeStr)
     {
-        if (empty($timeStr)) return null;
-        if (!preg_match('/(\d+):(\d+)\s*(AM|PM)/i', $timeStr, $matches)) return null;
+        if (empty($timeStr))
+            return null;
+        if (!preg_match('/(\d+):(\d+)\s*(AM|PM)/i', $timeStr, $matches))
+            return null;
 
-        $hours = (int)$matches[1];
-        $minutes = (int)$matches[2];
+        $hours = (int) $matches[1];
+        $minutes = (int) $matches[2];
         $ampm = strtoupper($matches[3]);
 
-        if ($ampm === 'PM' && $hours < 12) $hours += 12;
-        if ($ampm === 'AM' && $hours === 12) $hours = 0;
+        if ($ampm === 'PM' && $hours < 12)
+            $hours += 12;
+        if ($ampm === 'AM' && $hours === 12)
+            $hours = 0;
 
         return $hours * 60 + $minutes;
     }

@@ -17,11 +17,16 @@ class ProfileController extends Controller
 
         if ($request->hasFile('firma')) {
             $path = $request->file('firma')->store('firmas', 'public');
+            
+            // Asegurar que guardamos la ruta completa relativa a public
+            if (!str_starts_with($path, 'firmas/')) {
+                $path = 'firmas/' . basename($path);
+            }
+
             $user->update(['firma' => $path]);
 
-            // Sincronizar con la tabla de funcionarios
-            // Buscamos por número de documento o email para ser precisos
-            \App\Models\Funcionario::where('email', $user->email)
+            // Sincronizar con la tabla de líderes de proceso
+            \App\Models\LiderDeProceso::where('email', $user->email)
                 ->orWhere('numero_documento', $user->numero_documento)
                 ->update(['firma' => $path]);
 
