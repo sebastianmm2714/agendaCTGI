@@ -1,12 +1,12 @@
 <div class="card border-0 shadow-sm rounded-4">
     @if($tipo == 'aprobadas')
-        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+        <div class="card-header bg-white border-0 py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
             <h5 class="mb-0 fw-bold">Listado de Agendas</h5>
-            <div class="d-flex gap-2">
-                <button type="button" class="btn btn-outline-primary rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalExportSupervisor">
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalExportSupervisor">
                     <i class="fas fa-user-tie me-2"></i> Exportar por Supervisor
                 </button>
-                <button type="submit" id="btn-export-bulk" class="btn btn-success rounded-pill px-4 shadow-sm d-none">
+                <button type="submit" id="btn-export-bulk" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm d-none">
                     <i class="fas fa-file-excel me-2"></i> Descarga Masiva Excel (<span id="selected-count">0</span>)
                 </button>
             </div>

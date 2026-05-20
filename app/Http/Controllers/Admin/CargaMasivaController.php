@@ -41,8 +41,18 @@ class CargaMasivaController extends Controller
             ini_set('auto_detect_line_endings', true);
 
             $spreadsheet = IOFactory::load($path);
+            
+            // SEGURIDAD: Limitar número total de filas para evitar DoS (Agotamiento de memoria)
+            $totalRows = 0;
+            foreach ($spreadsheet->getAllSheets() as $sheet) {
+                $totalRows += $sheet->getHighestRow();
+            }
+            if ($totalRows > 1000) {
+                return response()->json(['success' => false, 'message' => 'El archivo es demasiado grande. El límite es de 1000 filas para prevenir saturación del servidor.'], 400);
+            }
+
             $processedData = [];
-            $reportData = [['Hoja', 'Nombre', 'Email', 'Contraseña', '¿Es Nuevo?', 'Rol']];
+            $reportData = [['Hoja', 'Nombre', 'Contraseña', '¿Es Nuevo?', 'Rol']];
             $totalProcesadosExito = 0;
 
             DB::beginTransaction();
@@ -92,6 +102,15 @@ class CargaMasivaController extends Controller
                     }
 
                     $data = array_combine($headers, $row);
+                    
+                    // Limpiar valores "N/A" o similares
+                    foreach ($data as $key => $value) {
+                        $v = trim((string)$value);
+                        if (strtoupper($v) === 'N/A' || strtoupper($v) === 'NA' || $v === '#N/A') {
+                            $data[$key] = '';
+                        }
+                    }
+
                     $allRowsToProcess[] = [
                         'sheet' => $sheetName,
                         'data' => $data
@@ -105,14 +124,10 @@ class CargaMasivaController extends Controller
                 $rowNum = $index + 2; // +1 por el encabezado, +1 por índice 0
                 
                 $numeroDocumento = $this->cleanDocument($data['numero_documento'] ?? $data['documento'] ?? $data['cedula'] ?? $data['identificacion'] ?? '');
-                $email = trim((string)($data['email'] ?? $data['correo'] ?? $data['correo_electronico'] ?? ''));
                 $nombre = trim((string)($data['nombre'] ?? $data['nombre_completo'] ?? $data['usuario'] ?? ''));
 
                 if (empty($numeroDocumento)) {
                     return response()->json(['success' => false, 'message' => "Error en la fila {$rowNum}: El 'Número de Documento' está vacío."], 400);
-                }
-                if (empty($email)) {
-                    return response()->json(['success' => false, 'message' => "Error en la fila {$rowNum}: El 'Email' está vacío."], 400);
                 }
                 if (empty($nombre)) {
                     return response()->json(['success' => false, 'message' => "Error en la fila {$rowNum}: El 'Nombre' está vacío."], 400);
@@ -133,21 +148,26 @@ class CargaMasivaController extends Controller
                         str_contains($roleValue, 'SUPERVISOR') => 'supervisor_contrato',
                         str_contains($roleValue, 'ORDENADOR') => 'ordenador_gasto',
                         str_contains($roleValue, 'VIATICOS')  => 'viaticos',
+                        str_contains($roleValue, 'ADMIN')     => 'administrador',
+                        str_contains($roleValue, 'FUNCIO')    => 'funcionario',
                         default => 'contratista'
                     };
                 }
 
-                if ($role === 'contratista') {
-                    if (!$tieneCategoria) {
+                if (in_array($role, ['contratista', 'funcionario'])) {
+                    if ($role === 'contratista' && !$tieneCategoria) {
                         return response()->json(['success' => false, 'message' => "Error en la fila {$rowNum}: El campo 'categoria_nombre' es obligatorio para contratistas."], 400);
                     }
                     if (empty($data['doc_supervisor'] ?? '')) {
-                        return response()->json(['success' => false, 'message' => "Error en la fila {$rowNum}: El 'doc_supervisor' es obligatorio para contratistas."], 400);
+                        return response()->json(['success' => false, 'message' => "Error en la fila {$rowNum}: El 'doc_supervisor' es obligatorio para contratistas/funcionarios."], 400);
                     }
                     if (empty($data['doc_ordenador'] ?? '')) {
-                        return response()->json(['success' => false, 'message' => "Error en la fila {$rowNum}: El 'doc_ordenador' es obligatorio para contratistas."], 400);
+                        return response()->json(['success' => false, 'message' => "Error en la fila {$rowNum}: El 'doc_ordenador' es obligatorio para contratistas/funcionarios."], 400);
                     }
-                } else {
+                    if ($role === 'funcionario' && empty($data['cargo'] ?? '')) {
+                        return response()->json(['success' => false, 'message' => "Error en la fila {$rowNum}: El campo 'cargo' es obligatorio para funcionarios."], 400);
+                    }
+                } elseif ($role !== 'administrador') {
                     // Es un líder de proceso
                     if (empty($data['cargo'] ?? '')) {
                         return response()->json(['success' => false, 'message' => "Error en la fila {$rowNum}: El 'cargo' es obligatorio para líderes de proceso."], 400);
@@ -163,11 +183,10 @@ class CargaMasivaController extends Controller
                 try {
                     $data = $item['data'];
                     $numeroDocumento = $this->cleanDocument($data['numero_documento'] ?? $data['documento'] ?? $data['cedula'] ?? $data['identificacion'] ?? '');
-                    $email = trim(strtolower((string)($data['email'] ?? $data['correo'] ?? $data['correo_electronico'] ?? '')));
                     $nombre = trim(strtoupper((string)($data['nombre'] ?? $data['nombre_completo'] ?? $data['usuario'] ?? '')));
 
                     // Ya validados arriba, pero mantenemos limpieza básica por seguridad
-                    if (!$numeroDocumento || !$email) continue;
+                    if (!$numeroDocumento) continue;
 
                     // Determinar rol
                     $role = 'contratista';
@@ -184,6 +203,8 @@ class CargaMasivaController extends Controller
                             str_contains($roleValue, 'SUPERVISOR') => 'supervisor_contrato',
                             str_contains($roleValue, 'ORDENADOR') => 'ordenador_gasto',
                             str_contains($roleValue, 'VIATICOS')  => 'viaticos',
+                            str_contains($roleValue, 'ADMIN')     => 'administrador',
+                            str_contains($roleValue, 'FUNCIO')    => 'funcionario',
                             default => 'contratista'
                         };
                     }
@@ -194,8 +215,8 @@ class CargaMasivaController extends Controller
 
                     if (!$user) {
                         // VALIDACIÓN: No permitir carga si faltan datos esenciales para UN NUEVO REGISTRO
-                        if (!$nombre || !$email) {
-                            $reportData[] = [$item['sheet'], $nombre ?: 'N/A', $email ?: 'N/A', 'N/A', 'Error: Datos incompletos (Nombre/Email)', 'N/A'];
+                        if (!$nombre) {
+                            $reportData[] = [$item['sheet'], $nombre ?: 'N/A', 'N/A', 'Error: Datos incompletos (Nombre)', 'N/A'];
                             continue;
                         }
 
@@ -203,9 +224,13 @@ class CargaMasivaController extends Controller
                         $randomDigits = random_int(10, 99);
                         $plainPassword = $numeroDocumento . $randomDigits;
                         $user = User::create([
-                            'name' => $nombre, 'email' => $email, 'password' => Hash::make($plainPassword),
-                            'tipo_documento' => $data['tipo_documento'] ?? 'CC', 'numero_documento' => $numeroDocumento,
-                            'role' => $role, 'numero_cuenta_tipo' => $data['numero_cuenta_tipo'] ?? null,
+                            'name' => $nombre, 
+                            'password' => Hash::make($plainPassword),
+                            'tipo_documento' => $data['tipo_documento'] ?? 'CC', 
+                            'numero_documento' => $numeroDocumento,
+                            'role' => $role, 
+                            'cargo' => $data['cargo'] ?? null,
+                            'numero_cuenta_tipo' => $data['numero_cuenta_tipo'] ?? null,
                         ]);
                     } else {
                         // SI EXISTE, NO SOBREESCRIBIMOS (Requerimiento del usuario)
@@ -218,7 +243,7 @@ class CargaMasivaController extends Controller
                         if (!$lider) {
                             LiderDeProceso::create([
                                 'numero_documento' => $numeroDocumento,
-                                'nombre' => $nombre, 'email' => $email, 'tipo_documento' => $data['tipo_documento'] ?? 'CC',
+                                'nombre' => $nombre, 'tipo_documento' => $data['tipo_documento'] ?? 'CC',
                                 'cargo' => $data['cargo'] ?? 'Líder de Proceso', 'tipo' => strtoupper($data['tipo'] ?? 'OTRO'),
                                 'numero_cuenta_tipo' => $data['numero_cuenta_tipo'] ?? null,
                             ]);
@@ -227,10 +252,10 @@ class CargaMasivaController extends Controller
 
                     // Guardar para el reporte final (esto se actualizará en el paso 2 si es contratista)
                     $processedData[$numeroDocumento] = [
-                        'nombre' => $nombre, 'correo' => $email, 'password' => $plainPassword, 'es_nuevo' => $esNuevo, 'rol' => $role, 'sheet' => $item['sheet']
+                        'nombre' => $nombre, 'password' => $plainPassword, 'es_nuevo' => $esNuevo, 'rol' => $role, 'sheet' => $item['sheet']
                     ];
                 } catch (\Exception $e) {
-                    $reportData[] = [$item['sheet'], $item['data']['nombre'] ?? 'Desconocido', 'N/A', 'N/A', 'Error P1: ' . $e->getMessage(), 'N/A'];
+                    $reportData[] = [$item['sheet'], $item['data']['nombre'] ?? 'Desconocido', 'N/A', 'Error P1: ' . $e->getMessage(), 'N/A'];
                 }
             }
 
@@ -246,18 +271,16 @@ class CargaMasivaController extends Controller
                     $user = User::where('numero_documento', $numeroDocumento)->first();
                     if (!$user) continue;
 
-                    $tieneCategoria = isset($data['categoria_nombre']) && trim($data['categoria_nombre']) !== '';
-                    if ($tieneCategoria) {
-                        $this->procesarContratista($user, $data);
+                    if (in_array($user->role, ['contratista', 'funcionario'])) {
+                        $this->procesarRelaciones($user, $data);
                     }
 
                     if (isset($processedData[$numeroDocumento])) {
                         $p = $processedData[$numeroDocumento];
-                        $reportData[] = [$p['sheet'], $p['nombre'], $p['correo'], '="' . $p['password'] . '"', $p['es_nuevo'], $p['rol']];
+                        $reportData[] = [$p['sheet'], $p['nombre'], '="' . $p['password'] . '"', $p['es_nuevo'], $p['rol']];
                         
                         $finalJsonData[] = [
                             'nombre' => $p['nombre'],
-                            'correo' => $p['correo'],
                             'password' => $p['password'],
                             'es_nuevo' => $p['es_nuevo']
                         ];
@@ -266,7 +289,7 @@ class CargaMasivaController extends Controller
                         unset($processedData[$numeroDocumento]); 
                     }
                 } catch (\Exception $e) {
-                    $reportData[] = [$item['sheet'], $item['data']['nombre'] ?? 'Desconocido', 'N/A', 'N/A', 'Error P2: ' . $e->getMessage(), 'N/A'];
+                    $reportData[] = [$item['sheet'], $item['data']['nombre'] ?? 'Desconocido', 'N/A', 'Error P2: ' . $e->getMessage(), 'N/A'];
                 }
             }
 
@@ -311,9 +334,12 @@ class CargaMasivaController extends Controller
         }
     }
 
-    private function procesarContratista($user, $data)
+    private function procesarRelaciones($user, $data)
     {
-        $categoria = CategoriaPersonal::where('nombre', trim($data['categoria_nombre']))->first();
+        $categoria = null;
+        if (isset($data['categoria_nombre']) && trim($data['categoria_nombre']) !== '') {
+            $categoria = CategoriaPersonal::where('nombre', trim($data['categoria_nombre']))->first();
+        }
         $supervisor = LiderDeProceso::where('numero_documento', $this->cleanDocument($data['doc_supervisor'] ?? ''))->first();
         $ordenador = LiderDeProceso::where('numero_documento', $this->cleanDocument($data['doc_ordenador'] ?? ''))->first();
 
@@ -321,7 +347,7 @@ class CargaMasivaController extends Controller
         $anio = str_replace('.0', '', $anio);
         if (strlen($anio) > 4) $anio = substr($anio, -4);
         
-        $rawSalario = trim((string)($data['salario_honorarios'] ?? 0));
+        $rawSalario = trim((string)($data['salario_honorarios'] ?? $data['valor'] ?? $data['honorarios'] ?? 0));
         // Quitar símbolos de moneda, puntos y comas de formato
         $salario = preg_replace('/[^0-9]/', '', $rawSalario);
         
@@ -332,20 +358,21 @@ class CargaMasivaController extends Controller
 
         $user->update([
             'salario_honorarios' => $salario,
-            'numero_contrato' => $data['numero_contrato'] ?? null,
+            'numero_contrato' => $data['numero_contrato'] ?? $data['n_contrato'] ?? $data['contrato'] ?? null,
             'anio_contrato' => $anio,
-            'fecha_vencimiento' => $this->formatDate($data['fecha_vencimiento'] ?? null),
-            'objeto_contractual' => $data['objeto_contractual'] ?? null,
+            'fecha_vencimiento' => $this->formatDate($data['fecha_vencimiento'] ?? $data['fecha_fin'] ?? $data['vencimiento'] ?? null),
+            'objeto_contractual' => $data['objeto_contractual'] ?? $data['objeto'] ?? null,
             'categoria_personal_id' => $categoria?->id,
             'supervisor_id' => $supervisor?->id,
             'ordenador_id' => $ordenador?->id,
+            'cargo' => $data['cargo'] ?? null,
         ]);
     }
 
     private function cleanDocument($doc)
     {
         $doc = trim((string)$doc);
-        if (!$doc) return '';
+        if (!$doc || strtoupper($doc) === 'N/A' || strtoupper($doc) === 'NA') return '';
 
         // Manejar notación científica (ej: 1.1105E+11 o 1,1105E+11)
         if (stripos($doc, 'E+') !== false) {

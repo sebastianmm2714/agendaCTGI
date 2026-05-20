@@ -34,12 +34,12 @@ class LiderDeProcesoController extends Controller
     {
         $request->validate([
             'nombre' => 'required|string|max:100',
-            'email' => 'required|email|max:150|unique:users,email',
             'tipo_documento' => 'required|string|max:20',
             'numero_documento' => 'required|string|max:50|unique:users,numero_documento',
             'cargo' => 'required|string|max:100',
             'tipo' => 'required|in:SUPERVISOR,ORDENADOR,VIATICOS',
             'numero_cuenta_tipo' => 'nullable|string|max:100',
+            'password' => 'nullable|string',
         ]);
 
         // Mapear tipo de funcionario a rol de usuario
@@ -51,13 +51,12 @@ class LiderDeProcesoController extends Controller
         };
 
         $numeroDocumento = $this->cleanDocument($request->numero_documento);
-        $email = trim(strtolower($request->email));
+        $password = $request->input('password') ?: ($numeroDocumento . random_int(10, 99));
 
         // Crear el usuario primero
         $user = \App\Models\User::create([
             'name' => $request->nombre,
-            'email' => $email,
-            'password' => \Illuminate\Support\Facades\Hash::make($numeroDocumento),
+            'password' => \Illuminate\Support\Facades\Hash::make($password),
             'tipo_documento' => $request->tipo_documento,
             'numero_documento' => $numeroDocumento,
             'numero_cuenta_tipo' => $request->numero_cuenta_tipo,
@@ -67,7 +66,6 @@ class LiderDeProcesoController extends Controller
         // Crear el líder de proceso
         LiderDeProceso::create([
             'nombre' => $request->nombre,
-            'email' => $email,
             'tipo_documento' => $request->tipo_documento,
             'numero_documento' => $numeroDocumento,
             'cargo' => $request->cargo,
@@ -82,7 +80,6 @@ class LiderDeProcesoController extends Controller
     {
         $request->validate([
             'nombre' => 'required|string|max:100',
-            'email' => 'required|email|max:150',
             'tipo_documento' => 'required|string|max:20',
             'numero_documento' => 'required|string|max:50',
             'cargo' => 'required|string|max:100',
@@ -93,7 +90,6 @@ class LiderDeProcesoController extends Controller
         // Limpiar documentos y normalizar email
         $data = $request->all();
         $data['numero_documento'] = $this->cleanDocument($request->numero_documento);
-        $data['email'] = trim(strtolower($request->email));
 
         // Actualizar líder de proceso. El LiderDeProcesoObserver se encargará de sincronizar con 'users'.
         $lideres_de_proceso->update($data);

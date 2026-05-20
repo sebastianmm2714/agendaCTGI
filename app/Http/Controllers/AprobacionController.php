@@ -10,90 +10,43 @@ class AprobacionController extends Controller
 {
     public function index(Request $request)
     {
-        $user = auth()->user();
-        
-        $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
-
-        if (!$funcionario) {
-            return view('coordinador.index', [
-                'pendientes' => collect([]), 
-                'enviadas' => collect([]), 
-                'devueltas' => collect([])
-            ]);
-        }
-
-        $query = AgendaDesplazamiento::where('supervisor_id', $funcionario->id)
-            ->with(['user', 'estado', 'user.categoria'])
-            ->orderBy('updated_at', 'desc');
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->whereHas('user', function($qu) use ($search) {
-                    $qu->where('name', 'like', "%$search%")
-                       ->orWhere('numero_documento', 'like', "%$search%");
-                })
-                ->orWhereHas('user.categoria', function($qc) use ($search) {
-                    $qc->where('nombre', 'like', "%$search%");
-                })
-                ->orWhere('ruta', 'like', "%$search%")
-                ->orWhere('destinos', 'like', "%$search%")
-                ->orWhereRaw("DATE_FORMAT(fecha_inicio, '%d/%m/%Y') LIKE ?", ["%$search%"])
-                ->orWhereRaw("DATE_FORMAT(fecha_fin, '%d/%m/%Y') LIKE ?", ["%$search%"]);
-            });
-        }
-
-        // Tab activo y registros por página
-        $activeTab = $request->get('tab', 'pendientes');
-        $perPage   = (int) $request->get('per_page', 5);
-
-        // Paginado independiente para conservar estado entre cambios de página
-        $pendientes = (clone $query)->whereHas('estado', function($q) {
-            $q->where('nombre', 'ENVIADA');
-        })->paginate($perPage, ['*'], 'page_p')->appends($request->except('page_p'));
-
-        $enviadas = (clone $query)->whereHas('estado', function($q) {
-            $q->whereIn('nombre', ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA']);
-        })->paginate($perPage, ['*'], 'page_e')->appends($request->except('page_e'));
-
-        $devueltas = (clone $query)->whereHas('estado', function($q) {
-            $q->where('nombre', 'CORRECCIÓN');
-        })->paginate($perPage, ['*'], 'page_d')->appends($request->except('page_d'));
-
-        // Tab activo
-        $activeTab = $request->get('tab', 'pendientes');
-
-        return view('coordinador.index', compact('pendientes', 'enviadas', 'devueltas', 'activeTab'));
+        return redirect()->route('inicio');
     }
 
     public function autorizar(Request $request, $id)
     {
-        $agenda = AgendaDesplazamiento::findOrFail($id);
-        $estadoAprobado = \App\Models\EstadoAgenda::where('nombre', 'APROBADA_SUPERVISOR')->first();
+        $agenda = AgendaDesplazamiento::with('user')->findOrFail($id);
         $user = auth()->user();
-
         $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
-        
-        if (!$user->firma || !$funcionario || !$funcionario->firma) {
-            return redirect()->back()->withErrors(['firma' => 'Debe registrar su firma digital en la sección "Mi Firma" antes de autorizar agendas.']);
+
+        if (!$funcionario || $agenda->supervisor_id !== $funcionario->id) {
+            abort(403, 'No tiene permisos para autorizar esta agenda.');
         }
 
-        // Limpieza de firma anterior si existe en la agenda, aunque ahora usaremos la misma ruta del perfil
-        // No es estrictamente necesario eliminarla del disco aquí si es la misma del perfil, 
-        // pero podemos simplemente actualizar el registro.
+        $estadoAprobado = \App\Models\EstadoAgenda::where('nombre', 'APROBADA_SUPERVISOR')->first();
+        
+        $esFuncionarioAgenda = ($agenda->user && $agenda->user->role === 'funcionario');
 
-        if ($agenda->supervisor_id) {
+        // Solo exigir firma si NO es una agenda de funcionario
+        if (!$esFuncionarioAgenda) {
+            if (!$user->firma || !$funcionario || !$funcionario->firma) {
+                return redirect()->back()->withErrors(['firma' => 'Debe registrar su firma digital en la sección "Mi Firma" antes de autorizar agendas de contratistas.']);
+            }
+        }
+
+        // Limpieza de firma anterior si existe en la agenda
+        if (!$esFuncionarioAgenda && $agenda->supervisor_id) {
             \App\Models\LiderDeProceso::where('id', $agenda->supervisor_id)->update(['firma' => $user->firma]);
         }
 
         $agenda->update([
             'estado_id' => $estadoAprobado->id,
-            'firma_supervisor_path' => $funcionario->firma,
+            'firma_supervisor_path' => $esFuncionarioAgenda ? null : ($funcionario->firma ?? null),
             'observaciones_finanzas' => null 
         ]);
 
-        return redirect()->route('supervisor_contrato.index')
-            ->with('alerta_exitosa', 'Agenda autorizada y enviada a Viáticos.');
+        return redirect()->to(session('back_url_reportar_dia', route('inicio')))
+            ->with('success', 'Agenda autorizada y enviada a Viáticos.');
     }
 
     public function devolver(Request $request, $id)
@@ -103,6 +56,13 @@ class AprobacionController extends Controller
         ]);
 
         $agenda = AgendaDesplazamiento::findOrFail($id);
+        $user = auth()->user();
+        $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
+
+        if (!$funcionario || $agenda->supervisor_id !== $funcionario->id) {
+            abort(403, 'No tiene permisos para devolver esta agenda.');
+        }
+
         $estadoRetornado = \App\Models\EstadoAgenda::where('nombre', 'CORRECCIÓN')->first();
 
         $agenda->update([
@@ -110,7 +70,7 @@ class AprobacionController extends Controller
             'observaciones_finanzas' => $request->observaciones, // Reutilizando este campo para el feedback
         ]);
 
-        return redirect()->route('supervisor_contrato.index')
-            ->with('alerta_exitosa', 'La agenda ha sido devuelta al contratista para su corrección.');
+        return redirect()->to(session('back_url_reportar_dia', route('inicio')))
+            ->with('success', 'La agenda ha sido devuelta al contratista para su corrección.');
     }
 }

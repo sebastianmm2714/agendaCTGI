@@ -19,28 +19,58 @@
     <style>
         :root {
             --brand: #39a900; 
+            --brand-shadow: rgba(57, 169, 0, 0.3);
             --ink: #1f3727ff;
             --border: #e5e7eb;
             --hover: #f1f5f9;
-            --sidebar-width: 22rem; 
+            --sidebar-width: 18rem; 
         }
 
-        html { font-size: 18px; } 
+        html { font-size: 15px; } 
 
         body { 
             background: #f8fafc; 
             margin: 0; 
             font-family: 'Figtree', sans-serif;
             color: var(--ink);
+            overflow-x: hidden;
         }
         
         .sidebar {
             width: var(--sidebar-width);
-            min-height: 100vh;
+            height: 100vh;
+            height: 100dvh;
             background: #fff;
             color: var(--ink);
             border-right: 2px solid var(--border);
-            z-index: 1000;
+            z-index: 1050;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .sidebar-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            scrollbar-width: thin;
+        }
+        
+        .sidebar-content::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
+        
+        .sidebar-footer {
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            background: #fff;
+            margin-top: auto;
         }
         
         .sidebar a {
@@ -49,12 +79,12 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 1.2rem 1.5rem;
+            padding: 0.75rem 1rem;
             border-radius: 0.75rem;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
             transition: all 0.2s ease;
             font-weight: 600;
-            font-size: 1.2rem;
+            font-size: 0.95rem;
         }
 
         .sidebar a:hover {
@@ -66,226 +96,280 @@
         .sidebar a.active-link {
             background: var(--brand) !important;
             color: white !important;
-            box-shadow: 0 10px 15px -3px rgba(57, 169, 0, 0.3);
+            box-shadow: 0 8px 12px -3px var(--brand-shadow);
         }
 
         .nav-icon {
-            width: 28px;
-            height: 28px;
+            width: 22px;
+            height: 22px;
             flex-shrink: 0;
         }
 
         .content {
             margin-left: var(--sidebar-width);
-            padding: 3rem;
+            padding: 2rem;
             width: calc(100% - var(--sidebar-width));
+            min-height: 100vh;
+            transition: all 0.3s ease;
         }
 
         .brand-logo {
-            max-width: 290px;
+            max-width: 100%;
             height: auto;
             transition: transform 0.3s ease;
         }
         
         .brand-logo:hover {
-            transform: scale(1.05);
+            transform: scale(1.02);
         }
 
         .btn-logout {
-            font-size: 1.1rem;
-            padding: 0.8rem;
+            font-size: 0.95rem;
+            padding: 0.65rem;
             border-width: 2px;
+        }
+
+        /* Mobile Navbar */
+        .mobile-header {
+            display: none;
+            background: #fff;
+            border-bottom: 2px solid var(--border);
+            padding: 0.75rem 1.25rem;
+            position: sticky;
+            top: 0;
+            z-index: 1040;
+        }
+
+        /* Responsive Logic */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+                box-shadow: 15px 0 30px rgba(0,0,0,0.1);
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .content {
+                margin-left: 0;
+                width: 100%;
+                padding: 1.25rem;
+            }
+            .mobile-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                backdrop-filter: blur(4px);
+                z-index: 1045;
+            }
+            .sidebar-overlay.show {
+                display: block;
+            }
+        }
+        
+        /* Tablet adjustments */
+        @media (min-width: 992px) and (max-width: 1366px) {
+            :root {
+                --sidebar-width: 16rem;
+            }
+            .content {
+                padding: 1.5rem;
+            }
         }
     </style>
 </head>
 <body>
 
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<header class="mobile-header">
+    <div class="d-flex align-items-center gap-2">
+        <img src="{{ asset('images/sena/logo-sena-verde.png') }}" style="height: 35px;" alt="SENA">
+        <span class="fw-bold text-success small">Agenda CTGI</span>
+    </div>
+    <div class="d-flex align-items-center">
+        <button class="btn btn-light border shadow-sm px-3 py-2" id="btnToggleSidebar">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
+</header>
+
 <div class="d-flex">
-    <aside class="sidebar d-flex flex-column position-fixed top-0 start-0 p-4">
-        
-        <div class="text-center mb-5 mt-2">
-            <img src="{{ asset('images/sena/logo250.png') }}" class="brand-logo mb-3" alt="SENA">
-            <hr class="mx-4 opacity-10">
+    <aside class="sidebar position-fixed top-0 bottom-0 start-0" id="sidebar">
+        <div class="sidebar-header p-3 text-center">
+            <img src="{{ asset('images/sena/logo250.png') }}" class="brand-logo" alt="SENA" style="max-height: 60px; width: auto;">
+            <hr class="mx-2 mt-3 opacity-10">
         </div>
 
-        <nav class="flex-grow-1">
-            {{-- ENLACE: INICIO (Oculto para Admin) --}}
-            @if(auth()->user()->role != 'administrador')
-            <a href="{{ route('inicio') }}" 
-            class="{{ request()->routeIs('inicio') ? 'active-link' : '' }}">
-                <div class="d-flex align-items-center gap-3">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/>
-                    </svg>
-                    <span>Inicio</span>
-                </div>
-            </a>
-            @endif
-
-            {{-- ENLACE: FORMULARIO (Solo Contratista, Administrador tiene su propio panel) --}}
-            @if(auth()->user()->role == 'contratista')
-            <a href="{{ route('formulario') }}" 
-            class="{{ request()->routeIs('formulario') ? 'active-link' : '' }} mt-2">
-                <div class="d-flex align-items-center gap-3">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                    </svg>
-                    <span>Formulario</span>
-                </div>
-            </a>
-            @endif
-
-            {{-- ENLACE: POR AUTORIZAR (Supervisor Contrato o Ordenador Gasto) - SIN ALERTAS --}}
-            @if(auth()->user()->role == 'supervisor_contrato' || auth()->user()->role == 'ordenador_gasto')
-                @php 
-                    $rutaMenu = (auth()->user()->role == 'supervisor_contrato') ? route('supervisor_contrato.index') : route('ordenador_gasto.index');
-                @endphp
-                
-                <a href="{{ $rutaMenu }}" 
-                class="{{ request()->routeIs('supervisor_contrato.index') || request()->routeIs('ordenador_gasto.index') ? 'active-link' : '' }} mt-2">
-                    <div class="d-flex align-items-center gap-3">
-                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                        </svg>
-                        <span>Por Autorizar</span>
+        <div class="sidebar-content">
+            <nav>
+                {{-- ENLACE: INICIO (Oculto para Admin) --}}
+                @if(auth()->user()->role != 'administrador')
+                <a href="{{ route('inicio') }}" 
+                class="{{ request()->routeIs('inicio') ? 'active-link' : '' }}">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fas fa-home nav-icon opacity-75"></i>
+                        <span>Inicio</span>
                     </div>
                 </a>
-            @endif
+                @endif
 
-            {{-- ENLACE UNIFICADO: REPORTES / GESTIÓN VIÁTICOS (Oculto para Admin) --}}
-            @if(auth()->user()->role != 'administrador')
-                @php
-                    $enlace_reportes = route('reportes');
-                    if (auth()->user()->role == 'contratista') $enlace_reportes = route('reportar-dia');
-                    if (auth()->user()->role == 'viaticos') $enlace_reportes = route('viaticos.index');
-                @endphp
-                <a href="{{ $enlace_reportes }}" 
-                class="{{ request()->routeIs('reportes') || request()->routeIs('reportes.show') || request()->routeIs('reportar-dia') || request()->routeIs('reportar-dia.show') || request()->routeIs('viaticos.index') || request()->routeIs('viaticos.gestionar') ? 'active-link' : '' }} mt-2">
+                {{-- ENLACE: FORMULARIO (Solo Contratista, Administrador tiene su propio panel) --}}
+                @if(auth()->user()->role == 'contratista')
+                <a href="{{ route('formulario') }}" 
+                class="{{ request()->routeIs('formulario') ? 'active-link' : '' }} mt-2">
                     <div class="d-flex align-items-center gap-3">
-                        @if(auth()->user()->role == 'viaticos')
-                            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>Gestión Viáticos</span>
-                        @else
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                        </svg>
+                        <span>Formulario</span>
+                    </div>
+                </a>
+                @endif
+
+                {{-- ENLACE: FORMULARIO PARA FUNCIONARIOS --}}
+                @if(auth()->user()->role == 'funcionario')
+                <a href="{{ route('formulario') }}" 
+                class="{{ request()->routeIs('formulario') ? 'active-link' : '' }} mt-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                        </svg>
+                        <span>Formulario</span>
+                    </div>
+                </a>
+                @endif
+
+
+                {{-- ENLACE UNIFICADO: REPORTES (Oculto para Admin, Contratistas, Funcionarios y Viáticos) --}}
+                @if(!in_array(auth()->user()->role, ['administrador', 'contratista', 'funcionario', 'supervisor_contrato', 'ordenador_gasto', 'viaticos']))
+                    <a href="{{ route('reportes') }}" 
+                    class="{{ request()->routeIs('reportes') || request()->routeIs('reportes.show') ? 'active-link' : '' }} mt-2">
+                        <div class="d-flex align-items-center gap-3">
                             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                 <path d="M4 20h16M7 16v-6M12 16v-9M17 16v-3"/>
                             </svg>
                             <span>Reportes</span>
-                        @endif
+                        </div>
+                    </a>
+                @endif
+
+                {{-- ENLACE: CONTRATISTAS (Solo para Viáticos) --}}
+                @if(auth()->user()->role == 'viaticos')
+                <a href="{{ route('viaticos.personal.index') }}" 
+                class="{{ request()->routeIs('viaticos.personal.index') ? 'active-link' : '' }} mt-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-2.533-3.076c-1.03-.353-2.14-.545-3.213-.545a10.115 10.115 0 0 0-4.052.876 1.5 1.5 0 0 0-.903 1.341V18c0 .265.105.52.293.707.188.188.442.293.707.293h2.362Z" />
+                            <path d="M12.14 16.14V15a3 3 0 0 0-3-3h-1.5a3 3 0 0 0-3 3v1.14M11.07 13.07a3 3 0 1 1-4.24-4.24 3 3 0 0 1 4.24 4.24ZM18.75 12a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" />
+                        </svg>
+                        <span>Personal</span>
                     </div>
                 </a>
-            @endif
+                @endif
 
-            {{-- ENLACE: CONTRATISTAS (Solo para Viáticos) --}}
-            @if(auth()->user()->role == 'viaticos')
-            <a href="{{ route('viaticos.personal.index') }}" 
-            class="{{ request()->routeIs('viaticos.personal.index') ? 'active-link' : '' }} mt-2">
-                <div class="d-flex align-items-center gap-3">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-2.533-3.076c-1.03-.353-2.14-.545-3.213-.545a10.115 10.115 0 0 0-4.052.876 1.5 1.5 0 0 0-.903 1.341V18c0 .265.105.52.293.707.188.188.442.293.707.293h2.362Z" />
-                        <path d="M12.14 16.14V15a3 3 0 0 0-3-3h-1.5a3 3 0 0 0-3 3v1.14M11.07 13.07a3 3 0 1 1-4.24-4.24 3 3 0 0 1 4.24 4.24ZM18.75 12a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" />
-                    </svg>
-                    <span>Contratistas</span>
-                </div>
-            </a>
-            @endif
+                {{-- ENLACE: MI FIRMA (Oculto para Admin y Viáticos, Admin tiene su propio panel) --}}
+                @if(auth()->user()->role != 'viaticos' && auth()->user()->role != 'administrador')
+                <a href="#" data-bs-toggle="modal" data-bs-target="#modalFirmaUsuario" class="mt-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        </svg>
+                        <span>Mi Firma</span>
+                    </div>
+                </a>
+                @endif
 
-            {{-- ENLACE: MI FIRMA (Oculto para Admin y Viáticos, Admin tiene su propio panel) --}}
-            @if(auth()->user()->role != 'viaticos' && auth()->user()->role != 'administrador')
-            <a href="#" data-bs-toggle="modal" data-bs-target="#modalFirmaUsuario" class="mt-2">
-                <div class="d-flex align-items-center gap-3">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                    </svg>
-                    <span>Mi Firma</span>
-                </div>
-            </a>
-            @endif
+                {{-- SECCIÓN: ADMINISTRACIÓN (Solo Administrador) --}}
+                @if(auth()->user()->role == 'administrador')
+                <a href="{{ route('admin.dashboard') }}" 
+                class="{{ request()->routeIs('admin.dashboard') ? 'active-link' : '' }}">
+                    <div class="d-flex align-items-center gap-3">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z" />
+                            <path d="M13.5 10.5H21A7.5 7.5 0 0 0 13.5 3v7.5Z" />
+                        </svg>
+                        <span>Panel Admin</span>
+                    </div>
+                </a>
 
-            {{-- SECCIÓN: ADMINISTRACIÓN (Solo Administrador) --}}
-            @if(auth()->user()->role == 'administrador')
-            
-            
-            <a href="{{ route('admin.dashboard') }}" 
-            class="{{ request()->routeIs('admin.dashboard') ? 'active-link' : '' }}">
-                <div class="d-flex align-items-center gap-3">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z" />
-                        <path d="M13.5 10.5H21A7.5 7.5 0 0 0 13.5 3v7.5Z" />
-                    </svg>
-                    <span>Panel Admin</span>
-                </div>
-            </a>
+                <a href="{{ route('admin.catalogos') }}" 
+                class="{{ request()->routeIs('admin.catalogos*') ? 'active-link' : '' }} mt-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75c.621 0 1.125.504 1.125 1.125v17.25c0 .621-.504 1.125-1.125 1.125H5.625c-.621 0-1.125-.504-1.125-1.125V5.625c0-.621.504-1.125 1.125-1.125Z" />
+                        </svg>
+                        <span>Estados/Categoría</span>
+                    </div>
+                </a>
 
-            <a href="{{ route('admin.catalogos') }}" 
-            class="{{ request()->routeIs('admin.catalogos*') ? 'active-link' : '' }} mt-2">
-                <div class="d-flex align-items-center gap-3">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75c.621 0 1.125.504 1.125 1.125v17.25c0 .621-.504 1.125-1.125 1.125H5.625c-.621 0-1.125-.504-1.125-1.125V5.625c0-.621.504-1.125 1.125-1.125Z" />
-                    </svg>
-                    <span>Estados/Categoría</span>
-                </div>
-            </a>
+                <a href="{{ route('admin.obligaciones.index') }}" 
+                class="{{ request()->routeIs('admin.obligaciones*') ? 'active-link' : '' }} mt-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                        </svg>
+                        <span>Obligaciones</span>
+                    </div>
+                </a>
 
-            <a href="{{ route('admin.obligaciones.index') }}" 
-            class="{{ request()->routeIs('admin.obligaciones*') ? 'active-link' : '' }} mt-2">
-                <div class="d-flex align-items-center gap-3">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                    </svg>
-                    <span>Obligaciones</span>
-                </div>
-            </a>
+                <a href="{{ route('admin.usuarios.index') }}" 
+                class="{{ request()->routeIs('admin.usuarios*') ? 'active-link' : '' }} mt-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-2.533-3.076c-1.03-.353-2.14-.545-3.213-.545a10.115 10.115 0 0 0-4.052.876 1.5 1.5 0 0 0-.903 1.341V18c0 .265.105.52.293.707.188.188.442.293.707.293h2.362Z" />
+                            <path d="M12.14 16.14V15a3 3 0 0 0-3-3h-1.5a3 3 0 0 0-3 3v1.14M11.07 13.07a3 3 0 1 1-4.24-4.24 3 3 0 0 1 4.24 4.24ZM18.75 12a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" />
+                        </svg>
+                        <span>Personal</span>
+                    </div>
+                </a>
 
-            <a href="{{ route('admin.usuarios.index') }}" 
-            class="{{ request()->routeIs('admin.usuarios*') ? 'active-link' : '' }} mt-2">
-                <div class="d-flex align-items-center gap-3">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-2.533-3.076c-1.03-.353-2.14-.545-3.213-.545a10.115 10.115 0 0 0-4.052.876 1.5 1.5 0 0 0-.903 1.341V18c0 .265.105.52.293.707.188.188.442.293.707.293h2.362Z" />
-                        <path d="M12.14 16.14V15a3 3 0 0 0-3-3h-1.5a3 3 0 0 0-3 3v1.14M11.07 13.07a3 3 0 1 1-4.24-4.24 3 3 0 0 1 4.24 4.24ZM18.75 12a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" />
-                    </svg>
-                    <span>Contratistas</span>
-                </div>
-            </a>
+                <a href="{{ route('admin.lideres_de_proceso.index') }}" 
+                class="{{ request()->routeIs('admin.lideres_de_proceso*') ? 'active-link' : '' }} mt-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0a5.995 5.995 0 0 0-4.058-2.522M6 18.72a6 6 0 0 1 1.06-3.197m0 0a5.996 5.996 0 0 1 4.058-2.522m0 0a3 3 0 1 0-4.682-2.72M9.75 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM14.25 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z" />
+                        </svg>
+                        <span>Líderes de Proceso</span>
+                    </div>
+                </a>
 
-            <a href="{{ route('admin.lideres_de_proceso.index') }}" 
-            class="{{ request()->routeIs('admin.lideres_de_proceso*') ? 'active-link' : '' }} mt-2">
-                <div class="d-flex align-items-center gap-3">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0a5.995 5.995 0 0 0-4.058-2.522M6 18.72a6 6 0 0 1 1.06-3.197m0 0a5.996 5.996 0 0 1 4.058-2.522m0 0a3 3 0 1 0-4.682-2.72M9.75 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM14.25 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z" />
-                    </svg>
-                    <span>Líderes de Proceso</span>
-                </div>
-            </a>
+                <a href="{{ route('admin.carga-masiva.index') }}" 
+                class="{{ request()->routeIs('admin.carga-masiva*') ? 'active-link' : '' }} mt-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+                        </svg>
+                        <span>Carga Masiva</span>
+                    </div>
+                </a>
+                @endif
+            </nav>
+        </div>
 
-            <a href="{{ route('admin.carga-masiva.index') }}" 
-            class="{{ request()->routeIs('admin.carga-masiva*') ? 'active-link' : '' }} mt-2">
-                <div class="d-flex align-items-center gap-3">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
-                    </svg>
-                    <span>Carga Masiva</span>
-                </div>
-            </a>
-            @endif
-        </nav>
-
-        <div class="mt-auto pt-4 border-top">
-            <div class="d-flex align-items-center gap-3 mb-4 px-2">
-                <div class="bg-light rounded-circle p-2 text-center" style="width: 45px; height: 45px;">
-                    <i class="fas fa-user text-muted"></i>
+        <div class="sidebar-footer">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center text-center shadow-sm" style="width: 40px; height: 40px; flex-shrink: 0;">
+                    <i class="fas fa-user text-success"></i>
                 </div>
                 <div class="overflow-hidden">
-                    <p class="mb-0 fw-bold text-truncate small">{{ auth()->user()->name }}</p>
-                    <p class="mb-0 text-muted small text-uppercase" style="font-size: 0.65rem;">{{ auth()->user()->role }}</p>
+                    <p class="mb-0 fw-bold text-truncate" style="font-size: 0.9rem;">{{ auth()->user()->name }}</p>
+                    <p class="mb-0 text-muted small text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;">{{ auth()->user()->role }}</p>
                 </div>
             </div>
             
-            <form action="{{ route('logout') }}" method="POST">
+            <form action="{{ route('logout') }}" method="POST" class="m-0">
                 @csrf
-                <button type="submit" class="btn btn-outline-danger w-100 fw-bold btn-logout rounded-3">
-                    <i class="fas fa-sign-out-alt me-2"></i> Cerrar sesión
+                <button type="submit" class="btn btn-outline-danger w-100 fw-bold btn-logout rounded-3 py-2 shadow-sm" style="font-size: 0.85rem;">
+                    <i class="fas fa-sign-out-alt me-1"></i> Cerrar sesión
                 </button>
             </form>
         </div>
@@ -473,7 +557,7 @@
         Swal.fire({
             icon: 'success',
             title: '¡Éxito!',
-            text: '{!! session('success') ?? session('alerta_exitosa') !!}',
+            text: '{{ session('success') ?? session('alerta_exitosa') }}',
             timer: 3000,
             showConfirmButton: false
         });
@@ -487,7 +571,7 @@
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: '{!! session('error') !!}'
+            text: '{{ session('error') }}'
         });
     });
 </script>
@@ -499,7 +583,7 @@
         Swal.fire({
             icon: 'warning',
             title: 'Atención',
-            text: '{!! session('warning') !!}'
+            text: '{{ session('warning') }}'
         });
     });
 </script>
@@ -523,7 +607,30 @@
 </script>
 @endif
 
-@stack('scripts')
+    {{-- Lógica para el sidebar responsive --}}
+    <script>
+        $(document).ready(function() {
+            const $sidebar = $('#sidebar');
+            const $overlay = $('#sidebarOverlay');
+            const $btnToggle = $('#btnToggleSidebar');
 
+            function toggleSidebar() {
+                $sidebar.toggleClass('show');
+                $overlay.toggleClass('show');
+                $('body').toggleClass('overflow-hidden');
+            }
+
+            $btnToggle.on('click', toggleSidebar);
+            $overlay.on('click', toggleSidebar);
+
+            // Cerrar al hacer clic en un enlace en móvil
+            $sidebar.find('a').on('click', function() {
+                if (window.innerWidth < 992 && !$(this).attr('data-bs-toggle')) {
+                    toggleSidebar();
+                }
+            });
+        });
+    </script>
+    @stack('scripts')
 </body>
 </html>

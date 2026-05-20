@@ -58,13 +58,13 @@
             <form action="{{ route('viaticos.index') }}" method="GET" class="row g-3 align-items-center" id="searchForm">
                 <input type="hidden" name="tab" id="active_tab_input" value="{{ $activeTab }}">
                 {{-- Buscador --}}
-                <div class="col-md-7">
+                <div class="col-12 col-md-7">
                     <div class="input-group input-group-lg shadow-sm">
                         <span class="input-group-text bg-white border-end-0 px-3">
                             <i class="fas fa-search text-success"></i>
                         </span>
                         <input type="text" name="search" class="form-control border-start-0 ps-0 fw-medium" 
-                               placeholder="Buscar por instructor, documento, fecha (DD/MM/YYYY) o destino..." 
+                               placeholder="Buscar por instructor, documento, fecha o destino..." 
                                value="{{ request('search') }}"
                                style="font-size: 0.95rem;">
                         @if(request('search'))
@@ -75,18 +75,18 @@
                     </div>
                 </div>
                 {{-- Selector per_page --}}
-                <div class="col-md-2">
-                    <select name="per_page" class="form-select form-select-sm shadow-sm bg-white" onchange="this.form.submit()" title="Registros por página" style="font-size:0.92rem;">
+                <div class="col-6 col-md-2">
+                    <select name="per_page" class="form-select rounded-pill shadow-sm bg-white fw-bold text-muted" onchange="this.form.submit()" title="Registros por página" style="font-size:0.85rem; height: 48px; border: 1px solid #dee2e6;">
                         @foreach([5, 10, 25, 50] as $opt)
                             <option value="{{ $opt }}" {{ request('per_page', 5) == $opt ? 'selected' : '' }}>
-                                {{ $opt }} por página
+                                {{ $opt }} REG.
                             </option>
                         @endforeach
                     </select>
                 </div>
                 {{-- Buscar --}}
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-success w-100 rounded-pill fw-bold py-2 px-3 shadow-sm" style="min-height: 48px;">
+                <div class="col-6 col-md-3">
+                    <button type="submit" class="btn btn-success w-100 rounded-pill fw-bold py-2 shadow-sm" style="height: 48px;">
                         <i class="fas fa-search me-1"></i> Buscar
                     </button>
                 </div>

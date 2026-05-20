@@ -16,24 +16,15 @@ class DashboardController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        $filtro = $request->get('ver');
+        $filtro  = $request->get('ver');
+        $search  = $request->get('search');
+        $perPage = (int) $request->get('per_page', 10);
 
         // 1. Base de la consulta
         $query = AgendaDesplazamiento::query();
 
-        // 2. Definir qué es "Pendiente" para cada rol
-        $estadoPendienteNombre = match ($user->role) {
-                'administrador', 'contratista' => 'BORRADOR',
-                'supervisor_contrato' => 'ENVIADA',
-                'viaticos' => 'APROBADA_SUPERVISOR',
-                'ordenador_gasto' => 'APROBADA_VIATICOS',
-                default => 'ENVIADA',
-            };
-
-        $estadoPendiente = \App\Models\EstadoAgenda::where('nombre', $estadoPendienteNombre)->first();
-
-        // 3. Aplicar privacidad de registros (Multi-tenancy por rol)
-        if ($user->role === 'contratista') {
+        // 2. Aplicar privacidad de registros (Multi-tenancy por rol)
+        if ($user->role === 'contratista' || $user->role === 'funcionario') {
             $query->where('user_id', $user->id);
         } elseif ($user->role === 'supervisor_contrato') {
             $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
@@ -42,48 +33,123 @@ class DashboardController extends Controller
             $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
             $query->where('ordenador_id', $funcionario ? $funcionario->id : 0);
         }
-        // Viáticos y Administrador ven todo (sin filtro adicional)
 
-        // 4. ESTADÍSTICAS DINÁMICAS
+        // 3. BÚSQUEDA INTELIGENTE (Si aplica)
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($search) {
+                $q->whereHas('user', function($qu) use ($search) {
+                    $qu->where('name', 'like', "%$search%")
+                       ->orWhere('numero_documento', 'like', "%$search%");
+                })
+                ->orWhere('ruta', 'like', "%$search%")
+                ->orWhere('destinos', 'like', "%$search%")
+                ->orWhereRaw("DATE_FORMAT(fecha_inicio, '%d/%m/%Y') LIKE ?", ["%$search%"])
+                ->orWhereRaw("DATE_FORMAT(fecha_fin, '%d/%m/%Y') LIKE ?", ["%$search%"]);
+            });
+        }
+
+        // 4. Definir qué es "Pendiente" para cada rol
+        $estadoPendienteNombre = match ($user->role) {
+                'administrador', 'contratista', 'funcionario' => 'BORRADOR',
+                'supervisor_contrato' => 'ENVIADA',
+                'viaticos' => 'APROBADA_SUPERVISOR',
+                'ordenador_gasto' => 'APROBADA_VIATICOS',
+                default => 'ENVIADA',
+            };
+
+        $estadoPendiente = \App\Models\EstadoAgenda::where('nombre', $estadoPendienteNombre)->first();
+
+        // 5. ESTADÍSTICAS DINÁMICAS (Sin aplicar filtro de búsqueda para los contadores de las tarjetas)
+        $baseStatsQuery = AgendaDesplazamiento::query();
+        if ($user->role === 'contratista' || $user->role === 'funcionario') {
+            $baseStatsQuery->where('user_id', $user->id);
+        } elseif ($user->role === 'supervisor_contrato') {
+            $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
+            $baseStatsQuery->where('supervisor_id', $funcionario ? $funcionario->id : 0);
+        } elseif ($user->role === 'ordenador_gasto') {
+            $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
+            $baseStatsQuery->where('ordenador_id', $funcionario ? $funcionario->id : 0);
+        }
+
         // Devueltas: Tienen observaciones y no están finalizadas
-        $queryDevueltas = (clone $query)->whereNotNull('observaciones_finanzas')
+        $queryDevueltasStats = (clone $baseStatsQuery)->whereNotNull('observaciones_finanzas')
             ->whereHas('estado', function($q) {
                 $q->whereNotIn('nombre', ['APROBADA_VIATICOS', 'APROBADA']);
             });
-        $idDevueltas = $queryDevueltas->pluck('id')->toArray();
+        $idDevueltasStats = $queryDevueltasStats->pluck('id')->toArray();
 
-        // Enviadas: Ya no son borradores, no son "pendientes de accion" y no están devueltas
-        $queryEnviadas = match ($user->role) {
-                'administrador', 'contratista' => (clone $query)->whereHas('estado', function($q){ $q->whereNotIn('nombre', ['BORRADOR', 'APROBADA']); }),
-                'supervisor_contrato' => (clone $query)->whereHas('estado', function($q){ $q->whereIn('nombre', ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA']); }),
-                'viaticos' => (clone $query)->whereHas('estado', function($q){ $q->whereIn('nombre', ['APROBADA_VIATICOS', 'APROBADA']); }),
-                'ordenador_gasto' => (clone $query)->whereHas('estado', function($q){ $q->where('nombre', 'APROBADA'); }),
-                default => (clone $query)->whereHas('estado', function($q){ $q->where('nombre', 'APROBADA_VIATICOS'); }),
+        // Enviadas / En Proceso: Ya no son borradores, pero aún no están finalizadas totalmente (Excepto APROBADA)
+        $queryEnviadasStats = match ($user->role) {
+                'administrador', 'contratista', 'funcionario' => (clone $baseStatsQuery)->whereHas('estado', function($q){ $q->whereNotIn('nombre', ['BORRADOR', 'APROBADA']); }),
+                'supervisor_contrato' => (clone $baseStatsQuery)->whereHas('estado', function($q){ $q->whereIn('nombre', ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS']); }),
+                'viaticos' => (clone $baseStatsQuery)->whereHas('estado', function($q){ $q->whereIn('nombre', ['APROBADA_VIATICOS']); }),
+                'ordenador_gasto' => (clone $baseStatsQuery)->whereHas('estado', function($q){ $q->where('nombre', 'APROBADA_VIATICOS'); }),
+                default => (clone $baseStatsQuery)->whereHas('estado', function($q){ $q->where('nombre', 'ENVIADA'); }),
             };
+        $queryEnviadasStats->whereNotIn('id', $idDevueltasStats);
 
-        // Excluir devueltas de "Enviadas" para evitar duplicidad visual
-        $queryEnviadas->whereNotIn('id', $idDevueltas);
+        // Finalizadas / Aprobadas: Estado final APROBADA (o APROBADA_VIATICOS para contratistas/funcionarios si así lo defines, pero mejor APROBADA como cierre total)
+        $queryFinalizadasStats = (clone $baseStatsQuery)->whereHas('estado', function($q){ $q->where('nombre', 'APROBADA'); });
 
         $stats = [
-            'pendientes' => (clone $query)->where('estado_id', $estadoPendiente?->id)->whereNotIn('id', $idDevueltas)->count(),
-            'enviadas' => $queryEnviadas->count(),
-            'devueltas' => $queryDevueltas->count(),
+            'pendientes' => (clone $baseStatsQuery)->where('estado_id', $estadoPendiente?->id)->whereNotIn('id', $idDevueltasStats)->count(),
+            'enviadas' => $queryEnviadasStats->count(),
+            'finalizadas' => $queryFinalizadasStats->count(),
+            'devueltas' => $queryDevueltasStats->count(),
         ];
 
-        // 5. Listado para la tabla
-        $agendas = $query->with(['user', 'estado', 'clasificacion'])
-            ->when($filtro == 'pendientes', function ($q) use ($estadoPendiente, $idDevueltas) {
-                return $q->where('estado_id', $estadoPendiente?->id)->whereNotIn('id', $idDevueltas);
+        // 6. Listado para la tabla (Aplicando búsqueda y filtros)
+        $idDevueltasSearch = (clone $query)->whereNotNull('observaciones_finanzas')
+            ->whereHas('estado', function($q) {
+                $q->whereNotIn('nombre', ['APROBADA_VIATICOS', 'APROBADA']);
+            })->pluck('id')->toArray();
+
+        $queryEnviadasSearch = match ($user->role) {
+            'administrador', 'contratista', 'funcionario' => (clone $query)->whereHas('estado', function($q){ $q->whereNotIn('nombre', ['BORRADOR', 'APROBADA']); }),
+            'supervisor_contrato' => (clone $query)->whereHas('estado', function($q){ $q->whereIn('nombre', ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS']); }),
+            'viaticos' => (clone $query)->whereHas('estado', function($q){ $q->whereIn('nombre', ['APROBADA_VIATICOS']); }),
+            'ordenador_gasto' => (clone $query)->whereHas('estado', function($q){ $q->where('nombre', 'APROBADA_VIATICOS'); }),
+            default => (clone $query)->whereHas('estado', function($q){ $q->where('nombre', 'ENVIADA'); }),
+        };
+        $queryEnviadasSearch->whereNotIn('id', $idDevueltasSearch);
+
+        $queryFinalizadasSearch = (clone $query)->whereHas('estado', function($q){ $q->where('nombre', 'APROBADA'); });
+
+        $agendas = $query->with(['user', 'estado', 'clasificacion', 'actividades', 'obligaciones'])
+            ->when($filtro == 'pendientes', function ($q) use ($estadoPendiente, $idDevueltasSearch) {
+                return $q->where('estado_id', $estadoPendiente?->id)->whereNotIn('id', $idDevueltasSearch);
             })
-            ->when($filtro == 'enviadas', function ($q) use ($queryEnviadas) {
-                return $q->whereIn('id', $queryEnviadas->pluck('id'));
+            ->when($filtro == 'enviadas', function ($q) use ($queryEnviadasSearch) {
+                return $q->whereIn('id', $queryEnviadasSearch->pluck('id'));
             })
-            ->when($filtro == 'devueltas', function ($q) use ($idDevueltas) {
-                return $q->whereIn('id', $idDevueltas);
+            ->when($filtro == 'finalizadas', function ($q) use ($queryFinalizadasSearch) {
+                return $q->whereIn('id', $queryFinalizadasSearch->pluck('id'));
+            })
+            ->when($filtro == 'devueltas', function ($q) use ($idDevueltasSearch) {
+                return $q->whereIn('id', $idDevueltasSearch);
+            })
+            ->when($filtro == 'borradores' && (in_array($user->role, ['viaticos', 'supervisor_contrato', 'ordenador_gasto'])), function ($q) {
+                return $q->whereHas('estado', function($e){ $e->where('nombre', 'BORRADOR'); });
             })
             ->orderBy('updated_at', 'desc')
-            ->get();
+            ->paginate($perPage)->appends($request->all());
 
-        return view('inicio', compact('stats', 'agendas', 'filtro'));
+        // 7. Contador de borradores para limpieza (Viáticos y Supervisores)
+        if (in_array($user->role, ['viaticos', 'supervisor_contrato', 'ordenador_gasto'])) {
+            $stats['borradores'] = (clone $baseStatsQuery)->whereHas('estado', function($e){ $e->where('nombre', 'BORRADOR'); })->count();
+        }
+
+        session(['back_url_reportar_dia' => $request->fullUrl()]);
+        
+        $supervisores = collect();
+        if ($user->role === 'viaticos') {
+            $supervisores = \App\Models\LiderDeProceso::whereHas('agendas', function($q) {
+                $q->whereHas('estado', function($e) {
+                    $e->whereIn('nombre', ['APROBADA_VIATICOS', 'APROBADA']);
+                });
+            })->orderBy('nombre', 'asc')->get();
+        }
+
+        return view('inicio', compact('stats', 'agendas', 'filtro', 'supervisores'));
     }
 }

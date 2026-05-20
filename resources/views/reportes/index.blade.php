@@ -20,7 +20,11 @@
         <div class="card border-0 shadow-sm rounded-4">
             <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold text-dark">
-                    Seleccione una agenda para reportar actividades
+                    @if(in_array(auth()->user()->role, ['supervisor_contrato', 'ordenador_gasto', 'administrador', 'viaticos']))
+                        Consulta y Seguimiento de Agendas
+                    @else
+                        Seleccione una agenda para reportar actividades
+                    @endif
                 </h5>
                 @if(auth()->user()->role == 'contratista')
                     <a href="{{ route('formulario') }}" class="btn btn-success">Nueva Agenda</a>
@@ -29,10 +33,14 @@
 
             <div class="card-body p-0">
                 {{-- BUSCADOR INTELIGENTE --}}
-                @if(in_array(auth()->user()->role, ['supervisor_contrato', 'ordenador_gasto', 'administrador']))
+                @if(in_array(auth()->user()->role, ['supervisor_contrato', 'ordenador_gasto', 'administrador', 'contratista', 'funcionario']))
                     <div class="px-4 py-4 bg-light border-bottom">
-                        <form action="{{ route('reportes') }}" method="GET" class="row g-3 align-items-center">
-                            <div class="col-md-7">
+                        <form action="{{ route('reportes') }}" method="GET" class="row g-3 align-items-center" id="searchForm">
+                            @php
+                                $isAdminRole = in_array(auth()->user()->role, ['supervisor_contrato', 'ordenador_gasto', 'administrador']);
+                            @endphp
+                            
+                            <div class="{{ $isAdminRole ? 'col-md-5' : 'col-md-8' }}">
                                 <div class="input-group input-group-lg shadow-sm">
                                     <span class="input-group-text bg-white border-end-0 px-3">
                                         <i class="fas fa-search text-success"></i>
@@ -48,45 +56,59 @@
                                     @endif
                                 </div>
                             </div>
-                            <div class="col-md-3 position-relative">
-                                @php
-                                    // Determinar el texto activo por defecto
-                                    $estadoActivoTexto = 'Todos los estados';
-                                    if(request('estado_id')) {
-                                        $estadoSeleccionado = $estados->firstWhere('id', request('estado_id'));
-                                        if($estadoSeleccionado) {
-                                            $estadoActivoTexto = str_replace('_', ' ', $estadoSeleccionado->nombre);
-                                        }
-                                    }
-                                @endphp
 
-                                <div class="custom-select-trigger d-flex justify-content-between align-items-center shadow-sm w-100" tabindex="0">
-                                    <div class="d-flex align-items-center overflow-hidden">
-                                        <i class="fas fa-layer-group text-success me-2 flex-shrink-0" style="font-size: 0.85rem;"></i>
-                                        <span id="estado_trigger_text" class="text-truncate fw-bold {{ request('estado_id') ? 'text-dark' : 'text-muted' }}" style="font-size: 0.85rem; letter-spacing: 0.3px; text-transform: uppercase;">
-                                            {{ $estadoActivoTexto }}
-                                        </span>
-                                    </div>
-                                    <i class="fas fa-chevron-down ms-2 flex-shrink-0 text-muted" style="font-size: 0.8rem;"></i>
-                                </div>
-                                
-                                <div class="custom-select-dropdown" style="display:none;">
-                                    <div class="custom-select-option {{ !request('estado_id') ? 'selected-item' : '' }}" data-value="" data-text="Todos los estados">
-                                        Todos los estados
-                                    </div>
-                                    @foreach($estados as $estado)
-                                        @php $n = str_replace('_', ' ', $estado->nombre); @endphp
-                                        <div class="custom-select-option {{ request('estado_id') == $estado->id ? 'selected-item' : '' }}" 
-                                             data-value="{{ $estado->id }}" 
-                                             data-text="{{ $n }}">
-                                            {{ $n }}
+                            @if($isAdminRole)
+                                <div class="col-md-3 position-relative">
+                                    @php
+                                        // Determinar el texto activo por defecto
+                                        $estadoActivoTexto = 'Todos los estados';
+                                        if(request('estado_id')) {
+                                            $estadoSeleccionado = $estados->firstWhere('id', request('estado_id'));
+                                            if($estadoSeleccionado) {
+                                                $estadoActivoTexto = str_replace('_', ' ', $estadoSeleccionado->nombre);
+                                            }
+                                        }
+                                    @endphp
+
+                                    <div class="custom-select-trigger d-flex justify-content-between align-items-center shadow-sm w-100" tabindex="0">
+                                        <div class="d-flex align-items-center overflow-hidden">
+                                            <i class="fas fa-layer-group text-success me-2 flex-shrink-0" style="font-size: 0.85rem;"></i>
+                                            <span id="estado_trigger_text" class="text-truncate fw-bold {{ request('estado_id') ? 'text-dark' : 'text-muted' }}" style="font-size: 0.85rem; letter-spacing: 0.3px; text-transform: uppercase;">
+                                                {{ $estadoActivoTexto }}
+                                            </span>
                                         </div>
-                                    @endforeach
+                                        <i class="fas fa-chevron-down ms-2 flex-shrink-0 text-muted" style="font-size: 0.8rem;"></i>
+                                    </div>
+                                    
+                                    <div class="custom-select-dropdown" style="display:none;">
+                                        <div class="custom-select-option {{ !request('estado_id') ? 'selected-item' : '' }}" data-value="" data-text="Todos los estados">
+                                            Todos los estados
+                                        </div>
+                                        @foreach($estados as $estado)
+                                            @php $n = str_replace('_', ' ', $estado->nombre); @endphp
+                                            <div class="custom-select-option {{ request('estado_id') == $estado->id ? 'selected-item' : '' }}" 
+                                                 data-value="{{ $estado->id }}" 
+                                                 data-text="{{ $n }}">
+                                                {{ $n }}
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    <input type="hidden" name="estado_id" id="estado_input" value="{{ request('estado_id') }}">
                                 </div>
-                                <input type="hidden" name="estado_id" id="estado_input" value="{{ request('estado_id') }}">
+                            @endif
+
+                            {{-- Selector per_page --}}
+                            <div class="col-md-2">
+                                <select name="per_page" class="form-select rounded-pill shadow-sm bg-white fw-bold text-muted" onchange="this.form.submit()" title="Registros por página" style="font-size:0.85rem; height: 46px; border: 2px solid #e2e8f0;">
+                                    @foreach([5, 10, 25, 50] as $opt)
+                                        <option value="{{ $opt }}" {{ request('per_page', 6) == $opt ? 'selected' : '' }}>
+                                            {{ $opt }} REGISTROS
+                                        </option>
+                                    @endforeach
+                                </select>
                             </div>
                             <div class="col-md-2">
-                                <button type="submit" class="btn btn-success w-100 rounded-pill fw-bold py-2 shadow-sm">
+                                <button type="submit" class="btn btn-success w-100 rounded-pill fw-bold py-2 shadow-sm" style="height: 46px;">
                                     <i class="fas fa-filter me-1"></i> Filtrar
                                 </button>
                             </div>
@@ -99,7 +121,7 @@
                             <tr class="text-dark">
                                 @if(in_array(auth()->user()->role, ['supervisor_contrato', 'ordenador_gasto', 'administrador']))
                                     <th class="ps-4 py-3" style="width: 80px;">#</th>
-                                    <th class="py-3">Contratista / Instructor</th>
+                                    <th class="py-3">{{ auth()->user()->role === 'funcionario' ? 'Servidor Público / Comisionado' : 'Contratista / Instructor' }}</th>
                                     <th class="py-3">Ruta / Destino</th>
                                     <th class="py-3">Fecha Inicio</th>
                                     <th class="py-3">Fecha Fin</th>
@@ -231,7 +253,7 @@
                                                 @endif
 
                                                 {{-- Botón Enviar --}}
-                                                @if(!$agenda->estado || ($agenda->estado && $agenda->estado->nombre == 'BORRADOR') || ($agenda->estado && $agenda->estado->nombre == 'ENVIADA' && $agenda->observaciones_finanzas))
+                                                @if(!$agenda->estado || ($agenda->estado && in_array($agenda->estado->nombre, ['BORRADOR', 'CORRECCIÓN'])) || ($agenda->estado && $agenda->estado->nombre == 'ENVIADA' && $agenda->observaciones_finanzas))
                                                     <form action="{{ route('reportar-dia.enviar', $agenda->id) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         <button type="submit" 
@@ -314,7 +336,7 @@
                         </a>
                     </div>
                     <div class="text-center mb-4">
-                        <label class="small text-muted fw-bold d-block">CONTRATISTA / INSTRUCTOR REGISTRADO</label>
+                        <label class="small text-muted fw-bold d-block">{{ auth()->user()->role === 'funcionario' ? 'SERVIDOR PÚBLICO / COMISIONADO REGISTRADO' : 'CONTRATISTA / INSTRUCTOR REGISTRADO' }}</label>
                         <p class="fs-4 fw-bold text-dark text-uppercase mb-0">{{ $agenda->user->name ?? 'N/A' }}</p>
                     </div>
                     <div class="p-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded-3">

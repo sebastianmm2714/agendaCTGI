@@ -18,13 +18,13 @@ class ViaticosPersonalController extends Controller
         $role    = $request->get('role');
         $vinculacion = $request->get('vinculacion');
 
-        $users = User::where('role', 'contratista')
+        $users = User::whereIn('role', ['contratista', 'funcionario'])
             ->with(['categoria', 'supervisor', 'ordenador'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sq) use ($search) {
-                    $sq->where('name', 'like', "%$search%")
-                       ->orWhere('numero_documento', 'like', "%$search%")
-                       ->orWhere('email', 'like', "%$search%");
+                    $searchEscaped = str_replace(['%', '_'], ['\%', '\_'], $search);
+                    $sq->where('name', 'like', "%$searchEscaped%")
+                       ->orWhere('numero_documento', 'like', "%$searchEscaped%");
                 });
             })
             ->when($role, function ($q) use ($role) {
@@ -54,7 +54,6 @@ class ViaticosPersonalController extends Controller
     {
         $request->validate([
             'name'                  => 'required|string|max:255',
-            'email'                 => 'required|email|unique:users,email',
             'numero_documento'      => 'required|string|max:20|unique:users,numero_documento',
             'tipo_documento'        => 'required|string|max:20',
             'role'                  => 'required|in:contratista,supervisor_contrato,ordenador_gasto,viaticos',
@@ -71,8 +70,7 @@ class ViaticosPersonalController extends Controller
 
         User::create([
             'name'                  => $request->name,
-            'email'                 => $request->email,
-            'password'              => Hash::make($request->numero_documento),
+            'password'              => Hash::make($request->numero_documento . random_int(10, 99)),
             'tipo_documento'        => $request->tipo_documento,
             'numero_documento'      => $request->numero_documento,
             'role'                  => $request->role,
@@ -104,7 +102,6 @@ class ViaticosPersonalController extends Controller
 
         $request->validate([
             'name'                  => 'required|string|max:255',
-            'email'                 => 'required|email|unique:users,email,' . $user->id,
             'numero_documento'      => 'required|string|max:20|unique:users,numero_documento,' . $user->id,
             'tipo_documento'        => 'required|string|max:20',
             'role'                  => 'required|in:contratista,supervisor_contrato,ordenador_gasto,viaticos',
@@ -119,7 +116,21 @@ class ViaticosPersonalController extends Controller
             'ordenador_id'          => 'nullable|exists:lideres_de_proceso,id',
         ]);
 
-        $user->update($request->all());
+        $user->update($request->only([
+            'name',
+            'numero_documento',
+            'tipo_documento',
+            'role',
+            'categoria_personal_id',
+            'salario_honorarios',
+            'numero_cuenta_tipo',
+            'numero_contrato',
+            'anio_contrato',
+            'fecha_vencimiento',
+            'objeto_contractual',
+            'supervisor_id',
+            'ordenador_id',
+        ]));
 
         return redirect()->route('viaticos.personal.index')
             ->with('success', 'Personal actualizado correctamente.');

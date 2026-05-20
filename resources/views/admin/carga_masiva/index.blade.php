@@ -9,7 +9,7 @@
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <h3 class="fw-bold text-dark mb-1">Carga Masiva de Usuarios</h3>
-                            <p class="text-muted mb-0">Sube un archivo Excel para registrar múltiples contratistas y líderes de proceso simultáneamente.</p>
+                            <p class="text-muted mb-0">Sube un archivo Excel para registrar múltiples usuarios y líderes de proceso simultáneamente.</p>
                         </div>
                         <div class="bg-success bg-opacity-10 p-3 rounded-3">
                             <i class="fas fa-file-excel text-success fa-2x"></i>
@@ -68,7 +68,6 @@
                                 <thead class="bg-light">
                                     <tr>
                                         <th class="px-4 py-3 border-0">Nombre Completo</th>
-                                        <th class="px-4 py-3 border-0">Correo Electrónico</th>
                                         <th class="px-4 py-3 border-0">Contraseña (CC + Random)</th>
                                         <th class="px-4 py-3 border-0 text-center">Estado</th>
                                     </tr>
@@ -306,13 +305,12 @@ $(document).ready(function() {
     function renderResults(data) {
         resultsTableBody.empty();
         data.forEach(user => {
-            resultsTableBody.append(`
+            const row = $(`
                 <tr>
-                    <td class="px-4 py-3 fw-bold">${user.nombre}</td>
-                    <td class="px-4 py-3 text-muted">${user.correo}</td>
+                    <td class="px-4 py-3 fw-bold user-name"></td>
                     <td class="px-4 py-3">
-                        <code class="bg-light p-2 rounded text-dark border">${user.password}</code>
-                        <button class="btn btn-sm btn-link text-muted copy-btn" data-pass="${user.password}">
+                        <code class="bg-light p-2 rounded text-dark border user-password"></code>
+                        <button class="btn btn-sm btn-link text-muted copy-btn" data-pass="">
                             <i class="far fa-copy"></i>
                         </button>
                     </td>
@@ -321,6 +319,12 @@ $(document).ready(function() {
                     </td>
                 </tr>
             `);
+            
+            row.find('.user-name').text(user.nombre);
+            row.find('.user-password').text(user.password);
+            row.find('.copy-btn').attr('data-pass', user.password);
+            
+            resultsTableBody.append(row);
         });
 
         resultsSection.removeClass('d-none');

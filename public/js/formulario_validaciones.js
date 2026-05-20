@@ -160,6 +160,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
+        } else {
+            e.preventDefault();
+            Swal.fire({
+                title: '¿Confirmar Solicitud?',
+                text: "¿Está seguro de que desea guardar esta agenda de desplazamiento?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#39a900',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, guardar',
+                cancelButtonText: 'Cancelar',
+                customClass: {
+                    popup: 'rounded-4'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Guardando...',
+                        text: 'Por favor espere un momento.',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    form.submit();
+                }
+            });
         }
     });
 

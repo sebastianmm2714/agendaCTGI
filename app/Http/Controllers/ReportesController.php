@@ -17,7 +17,7 @@ class ReportesController extends Controller
 
         // CASO 1: Si el usuario es de VIÁTICOS
         if ($user->role == 'viaticos') {
-            return redirect()->route('viaticos.index');
+            return redirect()->route('inicio');
         }
 
         $activeTab = $request->get('tab', 'pendientes');
@@ -30,61 +30,58 @@ class ReportesController extends Controller
         // Búsqueda inteligente
         if ($request->filled('search')) {
             $query->where(function($q) use ($search) {
-                $q->whereHas('user', function($qu) use ($search) {
-                    $qu->where('name', 'like', "%$search%")
-                       ->orWhere('numero_documento', 'like', "%$search%");
+                $searchEscaped = str_replace(['%', '_'], ['\%', '\_'], $search);
+                $q->whereHas('user', function($qu) use ($searchEscaped) {
+                    $qu->where('name', 'like', "%$searchEscaped%")
+                       ->orWhere('numero_documento', 'like', "%$searchEscaped%");
                 })
-                ->orWhere('ruta', 'like', "%$search%")
-                ->orWhere('destinos', 'like', "%$search%")
-                ->orWhereRaw("DATE_FORMAT(fecha_inicio, '%d/%m/%Y') LIKE ?", ["%$search%"])
-                ->orWhereRaw("DATE_FORMAT(fecha_fin, '%d/%m/%Y') LIKE ?", ["%$search%"]);
+                ->orWhere('ruta', 'like', "%$searchEscaped%")
+                ->orWhere('destinos', 'like', "%$searchEscaped%")
+                ->orWhereRaw("DATE_FORMAT(fecha_inicio, '%d/%m/%Y') LIKE ?", ["%$searchEscaped%"])
+                ->orWhereRaw("DATE_FORMAT(fecha_fin, '%d/%m/%Y') LIKE ?", ["%$searchEscaped%"]);
             });
         }
 
-        // Lógica por Rol
-        if ($user->role == 'contratista') {
-            $query->where('user_id', $user->id);
+        // Lógica por Rol (Unificación con Dashboard para Contratistas y Funcionarios)
+        if ($user->role == 'contratista' || $user->role == 'funcionario') {
+            // Mapeo de pestañas de reportes a filtros de inicio
+            $map = [
+                'pendientes' => 'pendientes',
+                'aprobadas' => 'enviadas',
+                'devueltas' => 'devueltas'
+            ];
+            $ver = $map[$activeTab] ?? 'pendientes';
             
-            // Pestañas para Contratista
-            $pendientesQuery = (clone $query)->whereHas('estado', function($q) {
-                $q->whereIn('nombre', ['BORRADOR', 'ENVIADA'])->whereNull('observaciones_finanzas');
-            });
-            
-            $aprobadasQuery = (clone $query)->whereHas('estado', function($q) {
-                $q->whereIn('nombre', ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA']);
-            });
-
-            $devueltasQuery = (clone $query)->where(function($q) {
-                $q->whereHas('estado', function($qe) {
-                    $qe->where('nombre', 'CORRECCI\u00d3N');
-                })->orWhere(function($qo) {
-                    $qo->whereHas('estado', function($qe) {
-                        $qe->where('nombre', 'ENVIADA');
-                    })->whereNotNull('observaciones_finanzas');
-                });
-            });
-
-            $pendientes = $pendientesQuery->paginate($perPage, ['*'], 'page_p')->appends($request->all());
-            $aprobadas  = $aprobadasQuery->paginate($perPage, ['*'], 'page_a')->appends($request->all());
-            $devueltas  = $devueltasQuery->paginate($perPage, ['*'], 'page_d')->appends($request->all());
-            
-            session(['back_url_reportar_dia' => $request->fullUrl()]);
-
-            return view('reportes.index', compact('pendientes', 'aprobadas', 'devueltas', 'activeTab'));
-
+            return redirect()->route('inicio', [
+                'ver' => $ver,
+                'search' => $search,
+                'per_page' => $perPage
+            ]);
         } elseif ($user->role == 'supervisor_contrato') {
             $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
             if (!$funcionario) return view('reportes.index', ['agendas' => collect(), 'estados' => collect()]);
 
-            $query->where('supervisor_id', $funcionario->id);
+            $query->where('supervisor_id', $funcionario->id)
+                  ->whereHas('estado', function($q) {
+                      $q->where('nombre', '!=', 'BORRADOR');
+                  });
         } elseif ($user->role == 'ordenador_gasto') {
             $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
             if (!$funcionario) return view('reportes.index', ['agendas' => collect(), 'estados' => collect()]);
 
-            $query->where('ordenador_id', $funcionario->id);
+            $query->where('ordenador_id', $funcionario->id)
+                  ->whereHas('estado', function($q) {
+                      $q->where('nombre', '!=', 'BORRADOR');
+                  });
         }
 
         // Para otros roles (Admin/Supervisor/Ordenador) mantenemos la vista clásica de tabla única por ahora o adaptamos
+        if ($user->role == 'administrador') {
+             $query->whereHas('estado', function($q) {
+                 $q->where('nombre', '!=', 'BORRADOR');
+             });
+        }
+
         if ($request->filled('estado_id')) {
             $query->where('estado_id', $request->estado_id);
         }
@@ -92,7 +89,7 @@ class ReportesController extends Controller
         $agendas = $query->paginate($perPage)->appends($request->all());
         session(['back_url_reportar_dia' => $request->fullUrl()]);
         
-        $estados = \App\Models\EstadoAgenda::whereNotIn('nombre', ['BORRADOR', 'ENVIADA'])->get();
+        $estados = \App\Models\EstadoAgenda::where('nombre', '!=', 'BORRADOR')->get();
 
         return view('reportes.index', compact('agendas', 'estados'));
     }
@@ -189,6 +186,7 @@ class ReportesController extends Controller
         $funcionarioId = $funcionario ? $funcionario->id : null;
 
         $isAuthorized = ($user->role === 'administrador') ||
+                        ($user->role === 'viaticos' && $agenda->estado->nombre === 'BORRADOR') ||
                         ($funcionarioId && ($agenda->supervisor_id === $funcionarioId));
 
         if (!$isAuthorized) {
@@ -203,6 +201,8 @@ class ReportesController extends Controller
         // Eliminar la agenda
         $agenda->delete();
 
-        return redirect()->route('reportes')->with('success', 'Agenda eliminada permanentemente del sistema.');
+        $redirect = $user->role === 'viaticos' ? route('inicio', ['ver' => 'borradores']) : route('reportes');
+
+        return redirect($redirect)->with('success', 'Agenda eliminada permanentemente del sistema.');
     }
 }

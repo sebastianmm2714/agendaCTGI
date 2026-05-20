@@ -18,7 +18,6 @@ class UserObserver
     {
         // Buscar si el usuario es un líder de proceso
         $lider = \App\Models\LiderDeProceso::where('numero_documento', $user->getOriginal('numero_documento'))
-            ->orWhere('email', $user->getOriginal('email'))
             ->first();
 
         if ($lider) {
@@ -34,10 +33,10 @@ class UserObserver
             \App\Models\LiderDeProceso::withoutEvents(function () use ($lider, $user, $tipoLider) {
                 $lider->update([
                     'nombre' => $user->name,
-                    'email' => $user->email,
                     'numero_documento' => $user->numero_documento,
                     'tipo_documento' => $user->tipo_documento,
                     'numero_cuenta_tipo' => $user->numero_cuenta_tipo,
+                    'cargo' => $user->cargo,
                     'tipo' => $tipoLider
                 ]);
             });

@@ -52,7 +52,7 @@
                         <tr>
                             <th class="ps-4 py-3 text-muted small fw-bold">NOMBRE</th>
                             <th class="py-3 text-muted small fw-bold">CARGO</th>
-                            <th class="py-3 text-muted small fw-bold">TIPO / ROL</th>
+                            <th class="py-3 text-muted small fw-bold text-center">TIPO / ROL</th>
                             <th class="py-3 text-center text-muted small fw-bold">FIRMA ADJUNTADA</th>
                             <th class="pe-4 py-3 text-end text-muted small fw-bold">ACCIONES</th>
                         </tr>
@@ -66,9 +66,8 @@
                             </td>
                             <td>
                                 <div class="small fw-bold">{{ $fun->cargo }}</div>
-                                <div class="small text-muted"><i class="fas fa-envelope me-1"></i>{{ $fun->email }}</div>
                             </td>
-                            <td>
+                            <td class="text-center">
                                 @php
                                     $color = match($fun->tipo) {
                                         'SUPERVISOR' => 'success',
@@ -116,10 +115,6 @@
                                                 <label class="form-label fw-bold">Nombre Completo</label>
                                                 <input type="text" name="nombre" class="form-control rounded-3" value="{{ $fun->nombre }}" required>
                                             </div>
-                                            <div class="mb-3">
-                                                <label class="form-label fw-bold">Correo Electrónico</label>
-                                                <input type="email" name="email" class="form-control rounded-3" value="{{ $fun->email }}" required>
-                                            </div>
                                             <div class="row g-3 mb-3">
                                                 <div class="col-md-4">
                                                     <label class="form-label fw-bold">Tipo Doc.</label>
@@ -150,7 +145,7 @@
                                             <div class="mb-0">
                                                 <label class="form-label fw-bold">Nro. Cuenta - Tipo</label>
                                                 @php
-                                                    $userVinculado = \App\Models\User::where('email', $fun->email)->orWhere('numero_documento', $fun->numero_documento)->first();
+                                                    $userVinculado = \App\Models\User::where('numero_documento', $fun->numero_documento)->first();
                                                 @endphp
                                                 <input type="text" name="numero_cuenta_tipo" class="form-control rounded-3" value="{{ $userVinculado->numero_cuenta_tipo ?? '' }}" placeholder="Ej: 91255755752 Ahorros Bancolombia">
                                             </div>
@@ -249,10 +244,6 @@
                         <label class="form-label fw-bold">Nombre Completo</label>
                         <input type="text" name="nombre" class="form-control rounded-3" placeholder="Ej: MARIA DEL MAR" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Correo Electrónico</label>
-                        <input type="email" name="email" class="form-control rounded-3" placeholder="correo@sena.edu.co" required>
-                    </div>
                     <div class="row g-3 mb-3">
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Tipo Doc.</label>
@@ -265,7 +256,19 @@
                         </div>
                         <div class="col-md-8">
                             <label class="form-label fw-bold">Número de Documento</label>
-                            <input type="text" name="numero_documento" class="form-control rounded-3" placeholder="Ej: 1018..." required>
+                            <input type="text" name="numero_documento" id="lider_doc_input" class="form-control rounded-3" placeholder="Ej: 1018..." required>
+                            <div id="lider_doc_feedback" class="small mt-1 d-none"></div>
+                            
+                            <div id="lider_password_generator_container" class="mt-2 d-none">
+                                <label class="form-label fw-bold text-success small mb-1"><i class="fas fa-key me-1"></i>Contraseña Sugerida</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" name="password" id="lider_generated_password" class="form-control bg-light border-success text-success fw-bold" readonly>
+                                    <button type="button" class="btn btn-success" id="lider_btn_copy_password" title="Copiar contraseña">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <small id="lider_copy_tooltip" class="text-success d-none"><i class="fas fa-check me-1"></i>¡Copiado!</small>
+                            </div>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -286,11 +289,80 @@
                     </div>
                 </div>
                 <div class="modal-footer border-0 p-4 pt-0">
-                    <button type="submit" class="btn btn-info w-100 rounded-pill fw-bold py-2 shadow-sm">Registrar Líder de Proceso</button>
+                    <button type="submit" id="btn_submit_lider" class="btn btn-info w-100 rounded-pill fw-bold py-2 shadow-sm">Registrar Líder de Proceso</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+@push('scripts')
+<script>
+    $(document).ready(function () {
+        let randomSuffixLider = '';
+        let docValidLider = false;
+
+        function validateFormLider() {
+            $('#btn_submit_lider').prop('disabled', !docValidLider);
+        }
+
+        // Resetear al abrir modal y generar el sufijo aleatorio de 2 dígitos
+        $('#modalCrearLider').on('show.bs.modal', function () {
+            randomSuffixLider = Math.floor(10 + Math.random() * 90).toString();
+            $('#lider_generated_password').val('');
+            $('#lider_password_generator_container').addClass('d-none');
+            $('#lider_copy_tooltip').addClass('d-none');
+            $('#lider_doc_feedback').addClass('d-none').removeClass('text-success text-danger text-muted').text('');
+            $('#lider_doc_input').removeClass('is-valid is-invalid').val('');
+            docValidLider = false;
+            validateFormLider();
+        });
+
+        // Generar contraseña y validar documento al escribir
+        $('#lider_doc_input').on('input', function () {
+            const doc = $(this).val().trim();
+            if (doc.length < 5) {
+                $('#lider_doc_feedback').removeClass('d-none text-success text-danger').addClass('text-muted').text('Ingrese un documento válido');
+                $('#lider_password_generator_container').addClass('d-none');
+                $('#lider_generated_password').val('');
+                docValidLider = false;
+                validateFormLider();
+                return;
+            }
+
+            const password = doc + randomSuffixLider;
+            $('#lider_generated_password').val(password);
+
+            $.get("{{ route('admin.usuarios.checkDocument') }}", { documento: doc }, function (data) {
+                if (data.exists) {
+                    $('#lider_doc_feedback').removeClass('d-none text-success text-muted').addClass('text-danger').text('Este documento ya está registrado');
+                    $('#lider_doc_input').addClass('is-invalid').removeClass('is-valid');
+                    docValidLider = false;
+                    $('#lider_password_generator_container').addClass('d-none');
+                } else {
+                    $('#lider_doc_feedback').removeClass('d-none text-danger text-muted').addClass('text-success').text('Documento disponible');
+                    $('#lider_doc_input').addClass('is-valid').removeClass('is-invalid');
+                    docValidLider = true;
+                    $('#lider_password_generator_container').removeClass('d-none');
+                }
+                validateFormLider();
+            });
+        });
+
+        // Copiar contraseña
+        $(document).on('click', '#lider_btn_copy_password', function () {
+            const pwd = $('#lider_generated_password').val();
+            if (pwd) {
+                navigator.clipboard.writeText(pwd).then(() => {
+                    $('#lider_copy_tooltip').removeClass('d-none').hide().fadeIn().delay(1500).fadeOut(function() {
+                        $(this).addClass('d-none');
+                    });
+                }).catch(err => {
+                    console.error('Error al copiar: ', err);
+                });
+            }
+        });
+    });
+</script>
+@endpush
 @endsection
 

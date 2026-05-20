@@ -6,17 +6,17 @@
             <div class="col-xxl-10">
 
                 {{-- Encabezado de Página --}}
-                <div class="d-flex align-items-center justify-content-between mb-5 animate__animated animate__fadeIn">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-success bg-opacity-10 p-3 rounded-4 me-4">
-                            <i class="fas fa-file-alt fa-2x text-success"></i>
+                <div class="d-flex flex-column flex-md-row align-items-center justify-content-between mb-5 animate__animated animate__fadeIn gap-4">
+                    <div class="d-flex flex-column flex-sm-row align-items-center text-center text-sm-start">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 mb-sm-0 me-sm-4 shadow-sm" style="width: 64px; height: 64px; background-color: #e8f5e9;">
+                            <i class="fas fa-file-signature fa-2x text-success"></i>
                         </div>
                         <div>
-                            <h2 class="fw-bold mb-1 text-dark">Reportar Actividades</h2>
-                            <p class="text-muted mb-0">Agenda #{{ $agenda->id }} - {{ $agenda->ruta }}</p>
+                            <h2 class="fw-bold mb-1 text-dark h3">Reportar Actividades</h2>
+                            <p class="text-muted mb-0 small">Agenda #{{ $agenda->id }} - {{ $agenda->ruta }}</p>
                         </div>
                     </div>
-                    <a href="{{ session('back_url_reportar_dia', auth()->user()->role == 'contratista' ? route('reportar-dia') : route('reportes')) }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold hover-grow">
+                    <a href="{{ session('back_url_reportar_dia', route('inicio')) }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold hover-grow btn-sm btn-md-base">
                         <i class="fas fa-arrow-left me-2"></i>Volver
                     </a>
                 </div>
@@ -46,14 +46,20 @@
 
                 <div class="row g-4">
                     {{-- Formulario de Reporte --}}
-                    @if(in_array(auth()->user()->role, ['contratista', 'administrador']))
+                    @if(in_array(auth()->user()->role, ['contratista', 'administrador', 'funcionario']))
                     <div class="col-lg-12">
                         <div class="card border-0 shadow-sm rounded-4 overflow-hidden animate__animated animate__fadeInUp">
-                            <div class="card-header bg-white border-0 py-4 px-4 d-flex align-items-center">
-                                <div class="bg-success p-2 rounded-3 me-3">
-                                    <i class="fas fa-calendar-plus text-white"></i>
+                            <div class="card-header bg-white border-0 py-4 px-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-4 me-3 shadow-sm d-flex align-items-center justify-content-center" 
+                                         style="width: 54px; height: 54px; background: linear-gradient(135deg, #39a900 0%, #2d8500 100%);">
+                                        <i class="fas fa-calendar-plus text-white fa-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="fw-bold mb-0 text-dark" id="form-title">Nueva Actividad</h5>
+                                        <p class="text-muted small mb-0 d-none d-sm-block">Registre las tareas realizadas en este día</p>
+                                    </div>
                                 </div>
-                                <h5 class="fw-bold mb-0 text-dark" id="form-title">Nueva Actividad</h5>
                             </div>
                             <div class="card-body p-4 pt-0">
                                 <form method="POST" action="{{ route('agenda.actividad.store', $agenda->id) }}" id="actividad-form" novalidate>
@@ -80,78 +86,79 @@
                                         @endphp
                                         <input type="hidden" name="ruta_ida" value="{{ $rutaIda }}">
                                         <input type="hidden" name="ruta_regreso" value="{{ $rutaRegreso }}">
-                                        <div class="col-md-6 mb-3">
-                                            <div class="p-3 rounded-4 d-flex align-items-center mb-3" style="background-color: #f8fdf5; border: 1px solid #e1f0d7;">
+                                        
+                                        <div class="col-md-6 mb-3" id="wrapper-ruta-ida" style="display: {{ ($agenda->fecha_inicio->format('Y-m-d') == old('fecha', $proximaFecha)) ? 'block' : 'none' }};">
+                                            <div class="p-3 rounded-4 d-flex align-items-center mb-3" style="background-color: {{ $agenda->user->role == 'funcionario' ? '#f0f4f7' : '#f8fdf5' }}; border: 1px solid {{ $agenda->user->role == 'funcionario' ? '#d1dfe7' : '#e1f0d7' }};">
                                                 <div class="flex-shrink-0 me-3">
-                                                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: #39a900; color: white;">
+                                                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: {{ $agenda->user->role == 'funcionario' ? '#39a900' : '#39a900' }}; color: white;">
                                                         <i class="fas fa-route fa-sm"></i>
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <label class="form-label fw-bold text-success small text-uppercase mb-0 d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">Ruta de Ida</label>
+                                                    <label class="form-label fw-bold {{ $agenda->user->role == 'funcionario' ? 'text-success' : 'text-success' }} small text-uppercase mb-0 d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">Ruta de Ida</label>
                                                     <span class="text-dark fw-bold">{{ $rutaIda }}</span>
-                                                </div>
-                                            </div>
-                                            
-                                            <div id="section-transporte-ida" style="display: {{ $agenda->actividades->count() == 0 ? 'block' : 'none' }};">
-                                                <label class="form-label fw-semibold text-muted small text-uppercase">Medio de Transporte (Ida)</label>
-                                                <div class="d-flex flex-wrap gap-2">
-                                                    <div class="transport-option">
-                                                        <input type="checkbox" name="transporte_ida[]" value="aereo" id="ti-aereo" class="btn-check">
-                                                        <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="ti-aereo">
-                                                            <i class="fas fa-plane me-2"></i>Aéreo
-                                                        </label>
-                                                    </div>
-                                                    <div class="transport-option">
-                                                        <input type="checkbox" name="transporte_ida[]" value="terrestre" id="ti-terrestre" class="btn-check">
-                                                        <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="ti-terrestre">
-                                                            <i class="fas fa-bus me-2"></i>Terrestre
-                                                        </label>
-                                                    </div>
-                                                    <div class="transport-option">
-                                                        <input type="checkbox" name="transporte_ida[]" value="fluvial" id="ti-fluvial" class="btn-check">
-                                                        <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="ti-fluvial">
-                                                            <i class="fas fa-ship me-2"></i>Fluvial
-                                                        </label>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div class="col-md-6 mb-3">
-                                            <div class="p-3 rounded-4 d-flex align-items-center mb-3" style="background-color: #f8fdf5; border: 1px solid #e1f0d7;">
+                                        {{-- Sección de Transporte --}}
+                                        <div class="col-md-12 mb-3" id="wrapper-transporte" style="display: {{ ($agenda->actividades->count() == 0 || $agenda->user->role == 'funcionario' || $agenda->fecha_inicio->format('Y-m-d') == old('fecha', $proximaFecha)) ? 'block' : 'none' }};">
+                                            <div class="row g-3">
+                                                @if(auth()->user()->role === 'funcionario')
+                                                    <div class="col-md-6" id="section-transporte-ida">
+                                                        <label class="form-label fw-semibold text-muted small text-uppercase">Medio de Transporte</label>
+                                                        <div class="d-flex flex-wrap gap-2">
+                                                            @foreach(['aereo' => 'fas fa-plane', 'terrestre' => 'fas fa-bus', 'fluvial' => 'fas fa-ship'] as $val => $icon)
+                                                                <div class="transport-option">
+                                                                    <input type="radio" name="transporte" value="{{ $val }}" id="t-{{ $val }}" class="btn-check" required>
+                                                                    <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="t-{{ $val }}">
+                                                                        <i class="{{ $icon }} me-2"></i>{{ ucfirst($val) }}
+                                                                    </label>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @else
+                                                    <div class="col-md-6" id="section-transporte-ida">
+                                                        <label class="form-label fw-semibold text-muted small text-uppercase">Transporte de Ida</label>
+                                                        <div class="d-flex flex-wrap gap-2">
+                                                            @foreach(['aereo' => 'fas fa-plane', 'terrestre' => 'fas fa-bus', 'fluvial' => 'fas fa-ship'] as $val => $icon)
+                                                                <div class="transport-option">
+                                                                    <input type="checkbox" name="transporte_ida[]" value="{{ $val }}" id="ti-{{ $val }}" class="btn-check">
+                                                                    <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="ti-{{ $val }}">
+                                                                        <i class="{{ $icon }} me-2"></i>{{ ucfirst($val) }}
+                                                                    </label>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6" id="section-transporte-regreso">
+                                                        <label class="form-label fw-semibold text-muted small text-uppercase">Transporte de Regreso</label>
+                                                        <div class="d-flex flex-wrap gap-2">
+                                                            @foreach(['aereo' => 'fas fa-plane', 'terrestre' => 'fas fa-bus', 'fluvial' => 'fas fa-ship'] as $val => $icon)
+                                                                <div class="transport-option">
+                                                                    <input type="checkbox" name="transporte_regreso[]" value="{{ $val }}" id="tr-{{ $val }}" class="btn-check">
+                                                                    <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="tr-{{ $val }}">
+                                                                        <i class="{{ $icon }} me-2"></i>{{ ucfirst($val) }}
+                                                                    </label>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3" id="wrapper-ruta-regreso" style="display: {{ ($agenda->fecha_fin->format('Y-m-d') == old('fecha', $proximaFecha)) ? 'block' : 'none' }};">
+                                            <div class="p-3 rounded-4 d-flex align-items-center mb-3" style="background-color: {{ $agenda->user->role == 'funcionario' ? '#f0f4f7' : '#f8fdf5' }}; border: 1px solid {{ $agenda->user->role == 'funcionario' ? '#d1dfe7' : '#e1f0d7' }};">
                                                 <div class="flex-shrink-0 me-3">
-                                                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: #b0bfc6; color: white;">
+                                                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: {{ $agenda->user->role == 'funcionario' ? '#39a900' : '#b0bfc6' }}; color: white;">
                                                         <i class="fas fa-undo fa-sm"></i>
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <label class="form-label fw-bold text-muted small text-uppercase mb-0 d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">Ruta de Regreso</label>
+                                                    <label class="form-label fw-bold {{ $agenda->user->role == 'funcionario' ? 'text-success' : 'text-muted' }} small text-uppercase mb-0 d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">Ruta de Regreso</label>
                                                     <span class="text-dark fw-bold">{{ $rutaRegreso }}</span>
-                                                </div>
-                                            </div>
-
-                                            <div id="section-transporte-regreso" style="display: {{ $agenda->actividades->count() == 0 ? 'block' : 'none' }};">
-                                                <label class="form-label fw-semibold text-muted small text-uppercase">Medio de Transporte (Regreso)</label>
-                                                <div class="d-flex flex-wrap gap-2">
-                                                    <div class="transport-option">
-                                                        <input type="checkbox" name="transporte_regreso[]" value="aereo" id="tr-aereo" class="btn-check">
-                                                        <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="tr-aereo">
-                                                            <i class="fas fa-plane me-2"></i>Aéreo
-                                                        </label>
-                                                    </div>
-                                                    <div class="transport-option">
-                                                        <input type="checkbox" name="transporte_regreso[]" value="terrestre" id="tr-terrestre" class="btn-check">
-                                                        <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="tr-terrestre">
-                                                            <i class="fas fa-bus me-2"></i>Terrestre
-                                                        </label>
-                                                    </div>
-                                                    <div class="transport-option">
-                                                        <input type="checkbox" name="transporte_regreso[]" value="fluvial" id="tr-fluvial" class="btn-check">
-                                                        <label class="btn btn-outline-success rounded-3 px-3 py-2 fw-bold d-flex align-items-center" for="tr-fluvial">
-                                                            <i class="fas fa-ship me-2"></i>Fluvial
-                                                        </label>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -159,7 +166,7 @@
                                         <div class="col-12">
                                             <div class="d-flex justify-content-between align-items-center mb-3">
                                                 <label class="form-label fw-semibold text-muted small text-uppercase mb-0">Actividades a ejecutar (Máximo 5 por día)</label>
-                                                <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3" id="add-actividad">
+                                                <button type="button" class="btn btn-sm btn-custom-outline rounded-pill px-2 px-sm-3 shadow-sm border-2" id="add-actividad" style="font-weight: 600;">
                                                     <i class="fas fa-plus me-1"></i> Agregar Actividad
                                                 </button>
                                             </div>
@@ -170,8 +177,8 @@
                                                             <span class="input-group-text bg-light border-0 cursor-pointer select-time-btn"><i class="far fa-clock text-muted"></i></span>
                                                             <input type="text" name="actividades[0][hora]" 
                                                                    class="form-control custom-input time-picker" 
-                                                                   placeholder="08:00 AM-09:00 AM" 
-                                                                   title="Formato: 08:00 AM-09:00 AM"
+                                                                   placeholder="{{ auth()->user()->role == 'funcionario' ? '08:00 AM' : '08:00 AM-09:00 AM' }}" 
+                                                                   title="Formato: {{ auth()->user()->role == 'funcionario' ? '08:00 AM' : '08:00 AM-09:00 AM' }}"
                                                                    readonly
                                                                    required>
                                                         </div>
@@ -189,13 +196,17 @@
                                         </div>
 
 
+                                        @if(auth()->user()->role !== 'funcionario')
                                         <div class="col-12 mt-3" id="section-liquidacion" style="display: {{ $agenda->actividades->count() == 0 ? 'block' : 'none' }};">
                                             <div class="card border-0 rounded-4 shadow-sm" style="background-color: #fcfcfc;">
                                                 <div class="card-body p-4">
-                                                    <h6 class="fw-bold mb-3 text-dark d-flex align-items-center">
-                                                        <i class="fas fa-file-invoice-dollar text-success me-2"></i> Liquidación de Gastos
-                                                    </h6>
-                                                    <div class="row g-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                                        <h6 class="fw-bold mb-0 text-dark d-flex align-items-center">
+                                                            <i class="fas fa-file-invoice-dollar text-success me-2"></i> Liquidación de Gastos
+                                                        </h6>
+                                                    </div>
+                                                    
+                                                    <div class="row g-3" id="liquidacion-fields-wrapper">
                                                         <div class="col-md-4" id="wrapper_valor_aereo" style="display: none;">
                                                             <label class="form-label text-muted small text-uppercase fw-bold mb-1">Terminales Aéreas</label>
                                                             <div class="input-group">
@@ -221,14 +232,15 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        @endif
 
-                                        <div class="col-12 mt-4 text-center">
-                                            <div class="d-flex justify-content-center gap-3">
-                                                <button type="submit" class="btn btn-success rounded-pill px-5 py-3 fw-bold shadow-sm hover-grow" id="btn-save-actividad">
+                                        <div class="col-12 mt-4">
+                                            <div class="d-flex flex-column flex-md-row justify-content-center gap-2 gap-md-3">
+                                                <button type="submit" class="btn {{ auth()->user()->role == 'funcionario' ? 'btn-success' : 'btn-success' }} rounded-pill px-4 py-2 fw-bold shadow-sm hover-grow" id="btn-save-actividad">
                                                     <i class="fas fa-save me-2"></i>Guardar Actividad
                                                 </button>
                                                 
-                                                <button type="button" class="btn btn-outline-danger rounded-pill px-5 py-3 fw-bold shadow-sm hover-grow" id="btn-cancel-edit" style="display: none;">
+                                                <button type="button" class="btn btn-outline-danger rounded-pill px-4 py-2 fw-bold shadow-sm hover-grow" id="btn-cancel-edit" style="display: none;">
                                                     <i class="fas fa-times me-2"></i>Cancelar Edición
                                                 </button>
 
@@ -239,7 +251,7 @@
 
                                                 @if($diasReportados >= $diasTotal)
                                                     <button type="button" 
-                                                            class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm hover-grow btn-final-enviar"
+                                                            class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm hover-grow btn-final-enviar"
                                                             data-total="{{ $diasTotal }}"
                                                             data-reportados="{{ $diasReportados }}">
                                                         <i class="fas fa-paper-plane me-2"></i>Enviar Agenda Terminada
@@ -268,8 +280,12 @@
                                                 <tr>
                                                     <th class="ps-4 py-3 text-muted small text-uppercase fw-bold" style="width: 120px;">Fecha</th>
                                                     <th class="py-3 text-muted small text-uppercase fw-bold">Actividades Ejecutadas</th>
+                                                    @if(auth()->user()->role === 'funcionario')
+                                                    <th class="py-3 text-muted small text-uppercase fw-bold" style="width: 180px;">Transporte</th>
+                                                    @else
                                                     <th class="py-3 text-muted small text-uppercase fw-bold" style="width: 180px;">Transporte</th>
                                                     <th class="py-3 text-muted small text-uppercase fw-bold" style="width: 200px;">Liquidación</th>
+                                                    @endif
                                                     <th class="py-3 text-center text-muted small text-uppercase fw-bold" style="width: 130px;">Estado</th>
                                                     <th class="pe-4 py-3 text-end text-muted small text-uppercase fw-bold" style="width: 120px;">Acciones</th>
                                                 </tr>
@@ -288,7 +304,7 @@
                                                                         @foreach($ejecutadas as $item)
                                                                             <tr>
                                                                                 <td class="p-0 pe-2 pb-1" style="width: 100px;">
-                                                                                    <span class="badge bg-light text-success border border-success border-opacity-10 fw-normal py-1 w-100" style="font-size: 0.72rem;">
+                                                                                    <span class="badge bg-light {{ auth()->user()->role == 'funcionario' ? 'text-success border-success' : 'text-success border-success' }} border-opacity-10 fw-normal py-1 w-100" style="font-size: 0.72rem;">
                                                                                         {{ $item['hora'] ?? '' }}
                                                                                     </span>
                                                                                 </td>
@@ -305,9 +321,24 @@
                                                                 @endif
                                                             </div>
                                                         </td>
+                                                        @if(auth()->user()->role === 'funcionario')
+                                                        <td style="vertical-align: middle;">
+                                                            <div class="py-1">
+                                                                @php $t = $actividad->transporte_ida ?? []; @endphp
+                                                                @if(count($t) > 0)
+                                                                    <span class="badge bg-light text-success border-success border-opacity-25 fw-bold px-3 py-2 rounded-pill">
+                                                                        <i class="fas fa-{{ $t[0] == 'aereo' ? 'plane' : ($t[0] == 'terrestre' ? 'bus' : 'ship') }} me-1"></i>
+                                                                        {{ ucfirst($t[0]) }}
+                                                                    </span>
+                                                                @else
+                                                                    <span class="text-muted small">N/A</span>
+                                                                @endif
+                                                            </div>
+                                                        </td>
+                                                        @else
                                                         <td style="vertical-align: middle;">
                                                             <div class="d-flex flex-column gap-1 py-1">
-                                                                <div class="small">
+                                                                 <div class="small">
                                                                     <span class="text-success fw-bold">→</span> <span class="text-muted">Ida:</span> 
                                                                     @php $ti = $actividad->transporte_ida ?? []; @endphp
                                                                     @foreach($ti as $medio)
@@ -334,8 +365,10 @@
                                                                 <span class="text-muted small">N/A</span>
                                                             @endif
                                                         </td>
+                                                        @endif
                                                         <td class="text-center" style="vertical-align: middle;">
-                                                            <span class="badge rounded-pill px-3 py-2 fw-normal" style="background-color: #f0f7ed; color: #39a900; border: 1px solid #e1f0d7;">
+                                                            <span class="badge rounded-pill px-3 py-2 fw-normal" 
+                                                                  style="{{ auth()->user()->role == 'funcionario' ? 'background-color: #f0f4f7; color: #39a900; border: 1px solid #d1dfe7;' : 'background-color: #f0f7ed; color: #39a900; border: 1px solid #e1f0d7;' }}">
                                                                 <i class="fas fa-check-circle me-1"></i>Reportado
                                                             </span>
                                                         </td>
@@ -347,6 +380,7 @@
                                                                     data-actividades='@json($actividad->actividad)'
                                                                     data-ti='@json($actividad->transporte_ida ?? [])'
                                                                     data-tr='@json($actividad->transporte_regreso ?? [])'
+
                                                                     data-va="{{ (int)$actividad->valor_aereo }}"
                                                                     data-vt="{{ (int)$actividad->valor_terrestre }}"
                                                                     data-vi="{{ (int)$actividad->valor_intermunicipal }}">
@@ -380,7 +414,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header border-0 pb-0 pt-4 px-4 d-flex align-items-center justify-content-between">
-                <h6 class="fw-bold mb-0 text-dark"><i class="far fa-clock text-success me-2"></i>Seleccionar Horario</h6>
+                <h6 class="fw-bold mb-0 text-dark"><i class="far fa-clock {{ auth()->user()->role == 'funcionario' ? 'text-success' : 'text-success' }} me-2"></i>Seleccionar Horario</h6>
                 <button type="button" class="btn-close-custom" data-bs-dismiss="modal" aria-label="Close">
                     <i class="fas fa-times"></i>
                 </button>
@@ -403,7 +437,7 @@
                         </div>
                     </div>
                     <div class="mt-4">
-                        <button type="button" class="btn btn-success btn-lg w-100 rounded-pill py-3 fw-bold shadow-sm hover-grow" id="apply-time" style="background-color: #39a900; border: none;">
+                        <button type="button" class="btn {{ auth()->user()->role == 'funcionario' ? 'btn-success' : 'btn-success' }} btn-lg w-100 rounded-pill py-3 fw-bold shadow-sm hover-grow" id="apply-time" style="border: none;">
                             Aplicar Horario
                         </button>
                     </div>
@@ -422,15 +456,32 @@
         }
 
         .custom-input:focus {
-            border-color: #39a900;
-            box-shadow: 0 0 0 4px rgba(57, 169, 0, 0.1);
+            border-color: {{ auth()->user()->role == 'funcionario' ? '#39a900' : '#39a900' }};
+            box-shadow: 0 0 0 4px {{ auth()->user()->role == 'funcionario' ? 'rgba(57, 169, 0, 0.1)' : 'rgba(57, 169, 0, 0.1)' }};
             background-color: #fff;
+        }
+
+        .btn-outline-success {
+            color: #39a900;
+            border-color: #39a900;
+        }
+
+        .btn-outline-success:hover, .btn-check:checked + .btn-outline-success {
+            background-color: #39a900 !important;
+            border-color: #39a900 !important;
+            color: white !important;
         }
 
         .btn-check:checked + .btn-outline-success {
             background-color: #39a900 !important;
             color: #fff !important;
             box-shadow: 0 4px 6px -1px rgba(57, 169, 0, 0.2);
+        }
+
+        .btn-check:checked + .btn-outline-success {
+            background-color: #39a900 !important;
+            color: #fff !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 50, 77, 0.2);
         }
 
         .btn-outline-success {
@@ -458,7 +509,7 @@
 
         .hover-grow:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 15px -3px rgba(57, 169, 0, 0.3) !important;
+            box-shadow: 0 8px 15px -3px {{ auth()->user()->role == 'funcionario' ? 'rgba(57, 169, 0, 0.3)' : 'rgba(57, 169, 0, 0.3)' }} !important;
         }
 
         .custom-table tbody tr {
@@ -472,6 +523,10 @@
         /* SENA Colors */
         .text-success { color: #39a900 !important; }
         .bg-success { background-color: #39a900 !important; }
+        
+        .text-success { color: #39a900 !important; }
+        .bg-success { background-color: #39a900 !important; }
+        .border-success { border-color: #39a900 !important; }
         
         .italic { font-style: italic; }
 
@@ -562,7 +617,7 @@
         .flatpickr-time input {
             font-size: 1.5rem !important;
             font-weight: 700 !important;
-            color: #39a900 !important;
+            color: {{ auth()->user()->role == 'funcionario' ? '#39a900' : '#39a900' }} !important;
         }
 
         .flatpickr-am-pm {
@@ -576,6 +631,29 @@
         .flatpickr-time .numInputWrapper:hover {
             background: #f1f5f9 !important;
         }
+
+        /* Botón Agregar Actividad 100% Seguro para Móviles */
+        .btn-custom-outline {
+            background-color: transparent !important;
+            color: #39a900 !important;
+            border-color: #39a900 !important;
+            transition: all 0.2s ease;
+        }
+        
+        /* El relleno verde SOLAMENTE aplica si tienes un mouse real */
+        @media (hover: hover) and (pointer: fine) {
+            .btn-custom-outline:hover {
+                background-color: #39a900 !important;
+                color: white !important;
+            }
+        }
+        
+        /* Efecto al tocar/presionar (aplica para todos) */
+        .btn-custom-outline:active {
+            background-color: rgba(57, 169, 0, 0.1) !important;
+            color: #39a900 !important;
+            transform: scale(0.95);
+        }
     </style>
 
     @push('scripts')
@@ -584,12 +662,14 @@
             let activityCount = 1;
 
             $('#add-actividad').click(function() {
+                $(this).blur(); // Quita el foco para que no se quede pegado el color verde sólido
+                
                 if ($('.activity-row').length >= 5) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Límite alcanzado',
                         text: 'El formato oficial solo permite hasta 5 actividades por día.',
-                        confirmButtonColor: '#39a900',
+                        confirmButtonColor: '{{ auth()->user()->role == 'funcionario' ? '#39a900' : '#39a900' }}',
                         customClass: {
                             confirmButton: 'rounded-pill px-4'
                         }
@@ -604,8 +684,8 @@
                                 <span class="input-group-text bg-light border-0 cursor-pointer select-time-btn"><i class="far fa-clock text-muted"></i></span>
                                 <input type="text" name="actividades[${activityCount}][hora]" 
                                        class="form-control custom-input time-picker" 
-                                       placeholder="08:00 AM-09:00 AM" 
-                                       title="Formato: 08:00 AM-09:00 AM"
+                                       placeholder="{{ auth()->user()->role == 'funcionario' ? '08:00 AM' : '08:00 AM-09:00 AM' }}" 
+                                       title="Formato: {{ auth()->user()->role == 'funcionario' ? '08:00 AM' : '08:00 AM-09:00 AM' }}"
                                        readonly
                                        required>
                             </div>
@@ -638,20 +718,53 @@
 
             // --- Lógica de Visibilidad según Fecha de Inicio ---
             const fechaInicioAgenda = "{{ $agenda->fecha_inicio->format('Y-m-d') }}";
+            const fechaFinAgenda = "{{ $agenda->fecha_fin->format('Y-m-d') }}";
 
             function toggleTransporteYLiquidacion(fechaSeleccionada) {
                 const esPrimerDia = (fechaSeleccionada === fechaInicioAgenda);
-                const action = esPrimerDia ? 'fadeIn' : 'fadeOut';
+                const esUltimoDia = (fechaSeleccionada === fechaFinAgenda);
+                const isFuncionario = '{{ $agenda->user->role }}' === 'funcionario';
                 
-                $('#section-transporte-ida, #section-transporte-regreso, #section-liquidacion')[action]();
+                // Visibilidad de Rutas
+                $('#wrapper-ruta-ida').toggle(esPrimerDia);
+                $('#wrapper-ruta-regreso').toggle(esUltimoDia);
+
+                if (isFuncionario) {
+                    // Para funcionarios: transporte siempre visible (usa radio 'transporte')
+                    $('#wrapper-transporte').show();
+                    $('#section-transporte-ida').show();
+                    $('#section-transporte-regreso').hide();
+                    $('#section-liquidacion').hide();
+                    $('#wrapper-ruta-ida').show();
+                    $('#wrapper-ruta-regreso').show();
+                } else {
+                    // Para otros roles (contratistas)
+                    // Según nueva lógica: Ida y Regreso se piden AMBOS solo el primer día
+                    if (esPrimerDia) {
+                        $('#wrapper-transporte').show();
+                        $('#section-transporte-ida').show();
+                        $('#section-transporte-regreso').show();
+                        $('#section-liquidacion').show();
+                        $('#wrapper-ruta-ida').show();
+                        $('#wrapper-ruta-regreso').show();
+                    } else {
+                        $('#wrapper-transporte, #section-transporte-ida, #section-transporte-regreso, #section-liquidacion, #wrapper-ruta-ida, #wrapper-ruta-regreso').hide();
+                    }
+                }
                 
-                if (!esPrimerDia) {
-                    // Resetear inputs si se ocultan
+                if (!esPrimerDia && !esUltimoDia && !isFuncionario) {
+                    // Resetear inputs si se ocultan (solo para no-funcionarios)
                     $('input[name="transporte_ida[]"], input[name="transporte_regreso[]"]').prop('checked', false);
                     $('input[name="valor_aereo"], input[name="valor_terrestre"], input[name="valor_intermunicipal"]').val('');
-                    $('.transport-option input').first().trigger('change');
+                }
+
+                // Disparar validación de transporte para actualizar visibilidad de campos de gastos
+                if (!isFuncionario) {
+                    $('input[name="transporte_ida[]"]').first().trigger('change');
                 }
             }
+
+            // (Se eliminó el toggle manual de liquidación)
 
             // Escuchar cambios en la fecha
             $('input[name="fecha"]').on('change', function() {
@@ -682,11 +795,39 @@
             $(document).on('click', '.select-time-btn, .time-picker', function() {
                 currentTargetInput = $(this).closest('.input-group').find('.time-picker');
                 const currentVal = currentTargetInput.val();
+                const isFuncionario = "{{ auth()->user()->role }}" === 'funcionario';
                 
-                if (currentVal && currentVal.includes('-')) {
-                    const parts = currentVal.split('-');
-                    fpStart.setDate(parts[0].trim());
-                    fpEnd.setDate(parts[1].trim());
+                if (isFuncionario) {
+                    $('.col-md-6:has(#end-time-calendar)').hide();
+                    $('.col-md-6:has(#start-time-calendar)').removeClass('col-md-6').addClass('col-12');
+                    $('#start-time-calendar').parent().prev().text('Seleccione la Hora');
+                    if (currentVal) {
+                        fpStart.setDate(currentVal.trim());
+                    }
+                } else {
+                    $('.col-md-6:has(#end-time-calendar)').show();
+                    $('.col-md-6:has(#start-time-calendar)').removeClass('col-12').addClass('col-md-6');
+                    $('#start-time-calendar').parent().prev().text('Hora de Inicio');
+                    if (currentVal && currentVal.includes('-')) {
+                        const parts = currentVal.split('-');
+                        fpStart.setDate(parts[0].trim());
+                        fpEnd.setDate(parts[1].trim());
+                    }
+                }
+                
+                $('#timePickerModal').modal('show');
+            });
+
+            $(document).on('click', '.time-picker-single', function() {
+                currentTargetInput = $(this);
+                const currentVal = currentTargetInput.val();
+                
+                $('.col-md-6:has(#end-time-calendar)').hide();
+                $('.col-md-6:has(#start-time-calendar)').removeClass('col-md-6').addClass('col-12');
+                $('#start-time-calendar').parent().prev().text('Seleccione la Hora');
+                
+                if (currentVal) {
+                    fpStart.setDate(currentVal.trim());
                 }
                 
                 $('#timePickerModal').modal('show');
@@ -711,7 +852,17 @@
             $('#apply-time').click(function() {
                 const startStr = $('#start-time').val();
                 const endStr = $('#end-time').val();
+                const isFuncionario = "{{ auth()->user()->role }}" === 'funcionario';
                 
+                if (isFuncionario) {
+                    if (startStr) {
+                        currentTargetInput.val(startStr);
+                        currentTargetInput.trigger('change');
+                        $('#timePickerModal').modal('hide');
+                    }
+                    return;
+                }
+
                 if (startStr && endStr) {
                     const newStart = timeToMinutes(startStr);
                     const newEnd = timeToMinutes(endStr);
@@ -831,9 +982,6 @@
                 // Limpiar errores
                 if ($checked.length > 0) {
                     clearError($(this).closest('.d-flex'));
-                } else {
-                    const msg = name.includes('ida') ? 'Seleccione al menos un medio de transporte de ida.' : 'Seleccione al menos un medio de transporte de regreso.';
-                    showError($(this).closest('.d-flex'), msg);
                 }
 
                 // --- Lógica de visibilidad de gastos ---
@@ -841,23 +989,22 @@
                                      $('input[name="transporte_regreso[]"][value="aereo"]:checked').length > 0;
                 
                 const terrestreSelected = $('input[name="transporte_ida[]"][value="terrestre"]:checked').length > 0 || 
-                                         $('input[name="transporte_regreso[]"][value="terrestre"]:checked').length > 0 ||
-                                         $('input[name="transporte_ida[]"][value="fluvial"]:checked').length > 0 || 
-                                         $('input[name="transporte_regreso[]"][value="fluvial"]:checked').length > 0;
+                                         $('input[name="transporte_regreso[]"][value="terrestre"]:checked').length > 0;
+
+                const fluvialSelected = $('input[name="transporte_ida[]"][value="fluvial"]:checked').length > 0 || 
+                                       $('input[name="transporte_regreso[]"][value="fluvial"]:checked').length > 0;
 
                 // Mostrar/Ocultar y resetear si se oculta
                 if (aereoSelected) {
-                    $('#wrapper_valor_aereo').fadeIn();
+                    $('#wrapper_valor_aereo').show();
                 } else {
-                    $('#wrapper_valor_aereo').fadeOut(() => $('input[name="valor_aereo"]').val(''));
+                    $('#wrapper_valor_aereo').hide().find('input').val('');
                 }
 
-                if (terrestreSelected) {
-                    $('#wrapper_valor_terrestre').fadeIn();
-                    $('#wrapper_valor_intermunicipal').fadeIn();
+                if (terrestreSelected || fluvialSelected) {
+                    $('#wrapper_valor_terrestre, #wrapper_valor_intermunicipal').show();
                 } else {
-                    $('#wrapper_valor_terrestre').fadeOut(() => $('input[name="valor_terrestre"]').val(''));
-                    $('#wrapper_valor_intermunicipal').fadeOut(() => $('input[name="valor_intermunicipal"]').val(''));
+                    $('#wrapper_valor_terrestre, #wrapper_valor_intermunicipal').hide().find('input').val('');
                 }
             });
 
@@ -865,7 +1012,8 @@
             $('form').on('submit', function(e) {
                 clearAllErrors();
                 let hasErrors = false;
-                const timeRegex = /^[0-9]{1,2}:[0-9]{2}\s?(AM|PM)\s*-\s*[0-9]{1,2}:[0-9]{2}\s?(AM|PM)$/i;
+                const isFuncionario = "{{ auth()->user()->role }}" === 'funcionario';
+                const timeRegex = isFuncionario ? /^[0-9]{1,2}:[0-9]{2}\s?(AM|PM)$/i : /^[0-9]{1,2}:[0-9]{2}\s?(AM|PM)\s*-\s*[0-9]{1,2}:[0-9]{2}\s?(AM|PM)$/i;
                 
                 // Validar Fecha
                 const $fecha = $('input[name="fecha"]');
@@ -874,17 +1022,30 @@
                     hasErrors = true;
                 }
 
-                // Validar Transporte (Solo si están visibles - primer día)
-                const $ti = $('input[name="transporte_ida[]"]');
-                if ($('#section-transporte-ida').is(':visible') && !$ti.filter(':checked').length) {
-                    showError($ti.closest('.d-flex'), 'Seleccione al menos un medio de transporte de ida.');
-                    hasErrors = true;
-                }
-
-                const $tr = $('input[name="transporte_regreso[]"]');
-                if ($('#section-transporte-regreso').is(':visible') && !$tr.filter(':checked').length) {
-                    showError($tr.closest('.d-flex'), 'Seleccione al menos un medio de transporte de regreso.');
-                    hasErrors = true;
+                // Validar Transporte (Solo si están visibles)
+                const isContratista = "{{ auth()->user()->role }}" !== 'funcionario';
+                
+                if (isContratista) {
+                    if ($('#section-transporte-ida').is(':visible')) {
+                        const $ti = $('input[name="transporte_ida[]"]');
+                        if (!$ti.filter(':checked').length) {
+                            showError($ti.closest('.d-flex'), 'Seleccione el transporte de ida.');
+                            hasErrors = true;
+                        }
+                    }
+                    if ($('#section-transporte-regreso').is(':visible')) {
+                        const $tr = $('input[name="transporte_regreso[]"]');
+                        if (!$tr.filter(':checked').length) {
+                            showError($tr.closest('.d-flex'), 'Seleccione el transporte de regreso.');
+                            hasErrors = true;
+                        }
+                    }
+                } else {
+                    const $t = $('input[name="transporte"]');
+                    if ($('#section-transporte-ida').is(':visible') && !$t.filter(':checked').length) {
+                        showError($t.closest('.d-flex'), 'Seleccione el medio de transporte.');
+                        hasErrors = true;
+                    }
                 }
 
                 // Validar Actividades (Solapamientos)
@@ -894,10 +1055,12 @@
                 $('.time-picker').each(function() {
                     const val = $(this).val().trim();
                     if (!timeRegex.test(val)) {
-                        showError(this, 'Formato: 08:00 AM-09:00 AM');
+                        showError(this, isFuncionario ? 'Formato: 08:00 AM' : 'Formato: 08:00 AM-09:00 AM');
                         hasErrors = true;
                         return;
                     }
+                    
+                    if (isFuncionario) return; // No validar rangos para funcionarios
 
                     const parts = val.split('-');
                     const start = timeToMinutes(parts[0].trim());
@@ -1022,24 +1185,28 @@
                     activityCount++;
                 });
 
-                // 4. Transportes (Solo si la sección existe/es visible)
-                $('input[name="transporte_ida[]"]').prop('checked', false);
-                if (Array.isArray(ti)) {
+                // 4. Marcar transportes
+                const isContratista = "{{ auth()->user()->role }}" !== 'funcionario';
+                if (isContratista) {
+                    $('input[name="transporte_ida[]"], input[name="transporte_regreso[]"]').prop('checked', false);
                     ti.forEach(val => $(`input[name="transporte_ida[]"][value="${val}"]`).prop('checked', true));
-                }
-                
-                $('input[name="transporte_regreso[]"]').prop('checked', false);
-                if (Array.isArray(tr)) {
                     tr.forEach(val => $(`input[name="transporte_regreso[]"][value="${val}"]`).prop('checked', true));
+                    // Disparar cambio para actualizar campos de gastos
+                    $('input[name="transporte_ida[]"]').first().trigger('change');
+                } else {
+                    $('input[name="transporte"]').prop('checked', false);
+                    if (ti && ti.length) {
+                        $(`input[name="transporte"][value="${ti[0]}"]`).prop('checked', true);
+                    }
                 }
 
-                // 5. Valores
-                $('input[name="valor_aereo"]').val(va || '').trigger('change');
-                $('input[name="valor_terrestre"]').val(vt || '').trigger('change');
-                $('input[name="valor_intermunicipal"]').val(vi || '').trigger('change');
-                
-                // Forzar trigger de cambio para mostrar wrappers de gastos si aplica
-                $('input[name="transporte_ida[]"]').first().trigger('change');
+                // 5. Llenar gastos
+                if (isContratista) {
+                    $('input[name="valor_aereo"]').val(va);
+                    $('input[name="valor_terrestre"]').val(vt);
+                    $('input[name="valor_intermunicipal"]').val(vi);
+                }
+
 
                 // Scroll suave al formulario
                 window.scrollTo({
@@ -1121,6 +1288,8 @@
                     }
                 });
             });
+            // --- LLAMADO INICIAL PARA ESTADO CORRECTO ---
+            toggleTransporteYLiquidacion($('input[name="fecha"]').val());
         });
     </script>
     @endpush

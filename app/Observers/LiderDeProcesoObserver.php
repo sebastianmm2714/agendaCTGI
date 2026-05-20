@@ -16,9 +16,7 @@ class LiderDeProcesoObserver
 
     public function updated(LiderDeProceso $liderDeProceso): void
     {
-        // Buscar el usuario vinculado por el documento o email original
         $user = \App\Models\User::where('numero_documento', $liderDeProceso->getOriginal('numero_documento'))
-            ->orWhere('email', $liderDeProceso->getOriginal('email'))
             ->first();
 
         if ($user) {
@@ -34,7 +32,6 @@ class LiderDeProcesoObserver
             \App\Models\User::withoutEvents(function () use ($user, $liderDeProceso, $role) {
                 $user->update([
                     'name' => $liderDeProceso->nombre,
-                    'email' => $liderDeProceso->email,
                     'numero_documento' => $liderDeProceso->numero_documento,
                     'tipo_documento' => $liderDeProceso->tipo_documento,
                     'numero_cuenta_tipo' => $liderDeProceso->numero_cuenta_tipo,

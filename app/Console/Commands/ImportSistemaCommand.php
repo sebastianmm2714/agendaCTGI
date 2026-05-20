@@ -62,7 +62,7 @@ class ImportSistemaCommand extends Command
     {
         $handle = fopen($path, 'r');
         $headers = fgetcsv($handle); // Leer encabezados
-        $reportData = [['Nombre', 'Email', 'Contraseña', '¿Es Nuevo?', '¿Se cambió clave?']];
+        $reportData = [['Nombre', 'Contraseña', '¿Es Nuevo?', '¿Se cambió clave?']];
 
         while (($row = fgetcsv($handle)) !== false) {
             if (count($headers) !== count($row)) {
@@ -93,7 +93,6 @@ class ImportSistemaCommand extends Command
                 
                 User::create([
                     'name' => $data['nombre'],
-                    'email' => $data['email'],
                     'password' => Hash::make($plainPassword),
                     'tipo_documento' => $data['tipo_documento'] ?? 'CC',
                     'numero_cuenta_tipo' => $data['numero_cuenta_tipo'] ?? null,
@@ -104,7 +103,6 @@ class ImportSistemaCommand extends Command
                 // Actualizar solo datos, sin tocar password
                 $existingUser->update([
                     'name' => $data['nombre'],
-                    'email' => $data['email'],
                     'tipo_documento' => $data['tipo_documento'] ?? 'CC',
                     'numero_cuenta_tipo' => $data['numero_cuenta_tipo'] ?? null,
                     'role' => $role
@@ -116,7 +114,6 @@ class ImportSistemaCommand extends Command
                 ['numero_documento' => $data['numero_documento']],
                 [
                     'nombre' => $data['nombre'],
-                    'email' => $data['email'],
                     'tipo_documento' => $data['tipo_documento'] ?? 'CC',
                     'cargo' => $data['cargo'],
                     'tipo' => $data['tipo'],
@@ -124,7 +121,7 @@ class ImportSistemaCommand extends Command
                 ]
             );
 
-            $reportData[] = [$data['nombre'], $data['email'], $plainPassword, $esNuevo, $seCambioClave];
+            $reportData[] = [$data['nombre'], $plainPassword, $esNuevo, $seCambioClave];
         }
         fclose($handle);
 
@@ -142,7 +139,7 @@ class ImportSistemaCommand extends Command
         $handle = fopen($path, 'r');
         $headers = fgetcsv($handle);
         
-        $reportData = [['Nombre', 'Email', 'Contraseña', '¿Es Nuevo?', '¿Se cambió clave?']];
+        $reportData = [['Nombre', 'Contraseña', '¿Es Nuevo?', '¿Se cambió clave?']];
 
         while (($row = fgetcsv($handle)) !== false) {
             if (count($headers) !== count($row)) {
@@ -184,7 +181,6 @@ class ImportSistemaCommand extends Command
 
             $userData = [
                 'name' => $data['nombre'],
-                'email' => $data['email'],
                 'tipo_documento' => $data['tipo_documento'] ?? 'CC',
                 'salario_honorarios' => str_replace(['.', ','], '', $data['salario_honorarios'] ?? 0),
                 'numero_cuenta_tipo' => $data['numero_cuenta_tipo'] ?? null,
@@ -210,7 +206,7 @@ class ImportSistemaCommand extends Command
                 $existingUser->update($userData);
             }
 
-            $reportData[] = [$data['nombre'], $data['email'], $plainPassword, $esNuevo, $seCambioClave];
+            $reportData[] = [$data['nombre'], $plainPassword, $esNuevo, $seCambioClave];
         }
         fclose($handle);
 

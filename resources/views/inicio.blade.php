@@ -4,27 +4,27 @@
     <div class="container-fluid ">
         {{-- Banner Institucional --}}
         <div class="card border shadow-sm mb-4">
-            <div class="card-body d-flex align-items-center justify-content-center py-3 mt-3">
-                <img src="{{ asset('images/sena/logo250.png') }}" alt="SENA" style="height: 60px; margin-right: 20px;">
-                <h1 class="h2 mb-0 fw-bold text-dark" style="letter-spacing: -1px;">Agenda CTGI</h1>
+            <div class="card-body d-flex flex-column flex-sm-row align-items-center justify-content-center py-2 text-center text-sm-start">
+                <img src="{{ asset('images/sena/logo250.png') }}" alt="SENA" style="height: 45px;" class="mb-2 mb-sm-0 me-sm-3">
+                <h1 class="h4 mb-0 fw-bold text-dark" style="letter-spacing: -0.5px;">Agenda CTGI</h1>
             </div>
         </div>
 
         {{-- Banner de Bienvenida --}}
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4"
             style="background: linear-gradient(135deg, #39a900 0%, #2d8500 100%);">
-            <div class="card-body py-5 px-4 text-white">
+            <div class="card-body py-4 px-4 text-white">
                 <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <h1 class="display-5 fw-bold mb-3">¡Bienvenid@, {{ auth()->user()->name }}!</h1>
-                        <p class="lead mb-0 text-white">Rol actual: <strong>{{ ucfirst(auth()->user()->role) }}</strong></p>
+                    <div class="col-md-9">
+                        <h1 class="fw-bold mb-2 h3 text-white">¡Bienvenid@, {{ auth()->user()->name }}!</h1>
+                        <p class="lead mb-0 small text-white opacity-90">Rol actual: <strong>{{ auth()->user()->role === 'funcionario' ? 'Servidor Público' : ucfirst(auth()->user()->role) }}</strong></p>
                         @if(auth()->user()->role === 'administrador')
-                            <span class="badge bg-white text-success mt-2 fw-bold">Panel Personal: Solo se muestran sus
+                            <span class="badge bg-white text-success mt-2 fw-bold small">Panel Personal: Solo se muestran sus
                                 agendas</span>
                         @endif
                     </div>
-                    <div class="col-md-4 text-center d-none d-md-block">
-                        <i class="fas fa-user-shield fa-5x opacity-75"></i>
+                    <div class="col-md-3 text-center d-none d-md-block">
+                        <i class="fas {{ auth()->user()->role === 'funcionario' ? 'fa-user-tie' : 'fa-user-shield' }} fa-4x opacity-50"></i>
                     </div>
                 </div>
             </div>
@@ -44,7 +44,7 @@
             }
         @endphp
 
-        @if(!$hasFirma && in_array($user->role, ['contratista', 'supervisor_contrato', 'ordenador_gasto']))
+        @if(!$hasFirma && in_array($user->role, ['contratista', 'supervisor_contrato', 'ordenador_gasto', 'funcionario']))
             <div class="alert alert-warning border-0 shadow-sm rounded-4 mb-4 p-4 animate__animated animate__shakeX"
                 style="border-left: 6px solid #ffc107 !important;">
                 <div class="d-flex align-items-center">
@@ -54,9 +54,9 @@
                     <div class="flex-grow-1">
                         <h4 class="alert-heading fw-bold text-dark mb-1">¡Atención! Falta tu firma digital</h4>
                         <p class="mb-0 fs-5 text-dark">
-                            @if($user->role == 'contratista')
+                            @if($user->role == 'contratista' || $user->role == 'funcionario')
                                 Detectamos que aún no has cargado tu firma en el sistema. Es <strong>obligatorio</strong> tener una
-                                firma registrada para poder enviar agendas.
+                                firma registrada para poder enviar {{ $user->role == 'funcionario' ? 'comisiones' : 'agendas' }}.
                             @else
                                 Detectamos que aún no has cargado tu firma en el sistema. Es <strong>obligatorio</strong> tener una
                                 firma registrada para poder autorizar agendas.
@@ -73,204 +73,917 @@
             </div>
         @endif
 
-        {{-- LAS 3 TARJETAS DE CONTROL --}}
-        <div class="row g-4 mb-5">
+        {{-- LAS 4 TARJETAS DE CONTROL --}}
+        <div class="row g-2 g-md-3 mb-4">
             {{-- Tarjeta Pendientes --}}
-            <div class="col-md-4">
-                <a href="{{ route('inicio', ['ver' => 'pendientes']) }}" class="text-decoration-none">
-                    <div
-                        class="card border-0 shadow-sm rounded-4 p-4 border-start border-primary border-5 {{ $filtro == 'pendientes' ? 'bg-primary bg-opacity-10' : 'bg-white' }}">
-                        <div class="d-flex justify-content-between text-primary">
-                            <i class="fas fa-clock fa-2x"></i>
-                            <span class="h3 fw-bold mb-0">{{ $stats['pendientes'] }}</span>
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 p-md-3 h-100 transition-all position-relative {{ $filtro == 'pendientes' ? 'bg-primary text-white shadow-lg' : 'bg-white text-primary border-start border-primary border-4' }}" style="min-height: 110px;">
+                    <a href="{{ route('inicio', ['ver' => 'pendientes']) }}" class="stretched-link"></a>
+                    <div class="d-flex justify-content-between align-items-start h-100">
+                        <div class="d-flex flex-column justify-content-between h-100 pe-2">
+                            <h6 class="fw-bold text-uppercase mb-1 small {{ $filtro == 'pendientes' ? 'text-white' : 'text-muted' }}" style="font-size: 0.65rem; letter-spacing: 0.5px;">
+                                @if(auth()->user()->role == 'viaticos')
+                                    Pendientes
+                                @elseif(auth()->user()->role == 'ordenador_gasto')
+                                    Autorizar
+                                @elseif(auth()->user()->role == 'supervisor_contrato')
+                                    Firmar
+                                @else
+                                    Borradores
+                                @endif
+                            </h6>
+                            <h2 class="fw-bold mb-0" style="font-size: 1.6rem; line-height: 1;">{{ $stats['pendientes'] }}</h2>
+                            @if(in_array(auth()->user()->role, ['viaticos', 'supervisor_contrato', 'ordenador_gasto']))
+                                <a href="{{ route('inicio', ['ver' => 'borradores']) }}" class="small mt-1 d-block fw-bold position-relative {{ $filtro == 'borradores' ? 'text-white' : 'text-primary' }}" style="text-decoration: underline; z-index: 5; font-size: 0.65rem;">
+                                    <i class="fas fa-trash-alt me-1"></i> Borradores ({{ $stats['borradores'] ?? 0 }})
+                                </a>
+                            @endif
                         </div>
-                        <h5 class="fw-bold text-dark mt-2 mb-0">
-                            @if(auth()->user()->role == 'viaticos')
-                                Pendientes por revisar
-                            @elseif(auth()->user()->role == 'ordenador_gasto')
-                                Por autorizar
-                            @else
-                                Pendientes
-                            @endif
-                        </h5>
-                        <small class="text-muted">
-                            @if(auth()->user()->role == 'viaticos')
-                                Agendas autorizadas por Supervisores
-                            @elseif(auth()->user()->role == 'ordenador_gasto')
-                                Esperando su firma digital
-                            @else
-                                Por revisión inicial
-                            @endif
-                        </small>
+                        <i class="fas {{ auth()->user()->role == 'supervisor_contrato' ? 'fa-signature' : 'fa-clock' }} fa-2x opacity-25"></i>
                     </div>
-                </a>
+                </div>
             </div>
 
-            {{-- Tarjeta Enviadas --}}
-            <div class="col-md-4">
-                <a href="{{ route('inicio', ['ver' => 'enviadas']) }}" class="text-decoration-none">
-                    <div
-                        class="card border-0 shadow-sm rounded-4 p-4 border-start border-success border-5 {{ $filtro == 'enviadas' ? 'bg-success bg-opacity-10' : 'bg-white' }}">
-                        <div class="d-flex justify-content-between text-success">
-                            <i class="fas fa-paper-plane fa-2x"></i>
-                            <span class="h3 fw-bold mb-0">{{ $stats['enviadas'] }}</span>
+            {{-- Tarjeta En Trámite (Antigua Enviadas) --}}
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 p-md-3 h-100 transition-all position-relative {{ $filtro == 'enviadas' ? 'bg-info text-white shadow-lg' : 'bg-white text-info border-start border-info border-4' }}" style="min-height: 110px;">
+                    <a href="{{ route('inicio', ['ver' => 'enviadas']) }}" class="stretched-link"></a>
+                    <div class="d-flex justify-content-between align-items-start h-100">
+                        <div class="d-flex flex-column justify-content-between h-100">
+                            <h6 class="fw-bold text-uppercase mb-1 small {{ $filtro == 'enviadas' ? 'text-white' : 'text-muted' }}" style="font-size: 0.65rem; letter-spacing: 0.5px;">
+                                En Proceso
+                            </h6>
+                            <h2 class="fw-bold mb-0" style="font-size: 1.6rem; line-height: 1;">{{ $stats['enviadas'] }}</h2>
                         </div>
-                        <h5 class="fw-bold text-dark mt-2 mb-0">
-                            @if(auth()->user()->role == 'viaticos')
-                                Aprobadas
-                            @elseif(auth()->user()->role == 'ordenador_gasto')
-                                Aprobadas
-                            @else
-                                Enviadas
-                            @endif
-                        </h5>
-                        <small class="text-muted">
-                            @if(auth()->user()->role == 'viaticos')
-                                Agendas aprobadas
-                            @elseif(auth()->user()->role == 'ordenador_gasto')
-                                Proceso finalizado
-                            @else
-                                En proceso de firmas
-                            @endif
-                        </small>
+                        <i class="fas fa-sync fa-2x opacity-25"></i>
                     </div>
-                </a>
+                </div>
+            </div>
+
+            {{-- Tarjeta Aprobadas / Finalizadas --}}
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 p-md-3 h-100 transition-all position-relative {{ $filtro == 'finalizadas' ? 'bg-success text-white shadow-lg' : 'bg-white text-success border-start border-success border-4' }}" style="min-height: 110px;">
+                    <a href="{{ route('inicio', ['ver' => 'finalizadas']) }}" class="stretched-link"></a>
+                    <div class="d-flex justify-content-between align-items-start h-100">
+                        <div class="d-flex flex-column justify-content-between h-100">
+                            <h6 class="fw-bold text-uppercase mb-1 small {{ $filtro == 'finalizadas' ? 'text-white' : 'text-muted' }}" style="font-size: 0.65rem; letter-spacing: 0.5px;">
+                                Aprobadas
+                            </h6>
+                            <h2 class="fw-bold mb-0" style="font-size: 1.6rem; line-height: 1;">{{ $stats['finalizadas'] }}</h2>
+                        </div>
+                        <i class="fas fa-check-double fa-2x opacity-25"></i>
+                    </div>
+                </div>
             </div>
 
             {{-- Tarjeta Devueltas --}}
-            <div class="col-md-4">
-                <a href="{{ route('inicio', ['ver' => 'devueltas']) }}" class="text-decoration-none">
-                    <div
-                        class="card border-0 shadow-sm rounded-4 p-4 border-start border-danger border-5 {{ $filtro == 'devueltas' ? 'bg-danger bg-opacity-10' : 'bg-white' }}">
-                        <div class="d-flex justify-content-between text-danger">
-                            <i class="fas fa-exclamation-circle fa-2x"></i>
-                            <span class="h3 fw-bold mb-0">{{ $stats['devueltas'] }}</span>
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 p-md-3 h-100 transition-all position-relative {{ $filtro == 'devueltas' ? 'bg-danger text-white shadow-lg' : 'bg-white text-danger border-start border-danger border-4' }}" style="min-height: 110px;">
+                    <a href="{{ route('inicio', ['ver' => 'devueltas']) }}" class="stretched-link"></a>
+                    <div class="d-flex justify-content-between align-items-start h-100">
+                        <div class="d-flex flex-column justify-content-between h-100">
+                            <h6 class="fw-bold text-uppercase mb-1 small {{ $filtro == 'devueltas' ? 'text-white' : 'text-muted' }}" style="font-size: 0.65rem; letter-spacing: 0.5px;">
+                                Devueltas
+                            </h6>
+                            <h2 class="fw-bold mb-0" style="font-size: 1.6rem; line-height: 1;">{{ $stats['devueltas'] }}</h2>
                         </div>
-                        <h5 class="fw-bold text-dark mt-2 mb-0">Devueltas</h5>
-                        <small class="text-muted">Con observaciones</small>
+                        <i class="fas fa-exclamation-circle fa-2x opacity-25"></i>
                     </div>
-                </a>
+                </div>
             </div>
         </div>
 
-        {{-- LISTADO DINÁMICO --}}
+        {{-- BUSCADOR Y FILTROS --}}
         @if($filtro)
-            <div class="card border-0 shadow-sm rounded-4 animate__animated animate__fadeIn">
-                <div class="card-header bg-white border-0 p-4 d-flex justify-content-between align-items-center border-bottom">
-                    <h4 class="fw-bold mb-0 text-dark">Viendo: <span class="text-capitalize">{{ $filtro }}</span></h4>
-                    <a href="{{ route('inicio') }}" class="btn btn-light btn-sm rounded-pill px-3 border text-muted">Cerrar</a>
+            <div class="card border-0 shadow-sm rounded-4 mb-4 animate__animated animate__fadeIn">
+                <div class="card-body px-4 py-4 bg-light rounded-4">
+                    <form action="{{ route('inicio') }}" method="GET" class="row g-3 align-items-center" id="searchForm">
+                        <input type="hidden" name="ver" value="{{ $filtro }}">
+                        {{-- Buscador --}}
+                        <div class="col-12 col-md-7">
+                            <div class="input-group input-group-lg shadow-sm">
+                                <span class="input-group-text bg-white border-end-0 px-3">
+                                    <i class="fas fa-search text-success"></i>
+                                </span>
+                                <input type="text" name="search" class="form-control border-start-0 ps-0 fw-medium" 
+                                       placeholder="Buscar por ruta, destino o fecha..." 
+                                       value="{{ request('search') }}"
+                                       style="font-size: 0.95rem;">
+                                @if(request('search'))
+                                    <a href="{{ route('inicio', ['ver' => $filtro]) }}" class="btn btn-white border-start-0 text-muted" title="Limpiar búsqueda">
+                                        <i class="fas fa-times-circle"></i>
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                        {{-- Selector per_page --}}
+                        <div class="col-6 col-md-2">
+                            <select name="per_page" class="form-select rounded-pill shadow-sm bg-white fw-bold text-muted" onchange="this.form.submit()" title="Registros por página" style="font-size:0.85rem; height: 40px; border: 1px solid #dee2e6;">
+                                @foreach([5, 10, 25, 50] as $opt)
+                                    <option value="{{ $opt }}" {{ request('per_page', 10) == $opt ? 'selected' : '' }}>
+                                        {{ $opt }} REG.
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        {{-- Buscar --}}
+                        <div class="col-6 col-md-3">
+                            <button type="submit" class="btn btn-success w-100 rounded-pill fw-bold py-2 shadow-sm" style="height: 40px;">
+                                <i class="fas fa-filter me-1"></i> Filtrar Listado
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {{-- LISTADO DINÁMICO --}}
+            <div class="card border-0 shadow-sm rounded-4 animate__animated animate__fadeInUp">
+                <div class="card-header bg-white border-bottom py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <div>
+                        <h4 class="mb-0 fw-bold text-dark d-flex align-items-center">
+                            @if($filtro == 'pendientes')
+                                <i class="fas fa-clock text-primary me-2"></i>
+                                @if(auth()->user()->role == 'viaticos')
+                                    Agendas por Revisar
+                                @elseif(auth()->user()->role == 'ordenador_gasto')
+                                    Agendas por Autorizar
+                                @else
+                                    Mis Comisiones Pendientes
+                                @endif
+                            @elseif($filtro == 'enviadas')
+                                <i class="fas fa-sync text-info me-2"></i> Agendas en Trámite
+                            @elseif($filtro == 'finalizadas')
+                                <i class="fas fa-check-double text-success me-2"></i> Agendas Aprobadas
+                            @elseif($filtro == 'devueltas')
+                                <i class="fas fa-exclamation-triangle text-danger me-2"></i> Agendas Devueltas
+                            @elseif($filtro == 'borradores')
+                                <i class="fas fa-trash-alt text-danger me-2"></i> Borradores del Sistema
+                            @endif
+                        </h4>
+                        <p class="text-muted mb-0 small">Se muestran {{ $agendas->count() }} de {{ $agendas->total() }} registros</p>
+                        
+                        {{-- Selector de Modo para Viáticos y Supervisores --}}
+                        @if(in_array(auth()->user()->role, ['viaticos', 'supervisor_contrato', 'ordenador_gasto']) && in_array($filtro, ['pendientes', 'borradores']))
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                <a href="{{ route('inicio', ['ver' => 'pendientes']) }}" 
+                                   class="btn btn-sm rounded-pill px-3 fw-bold transition-all {{ $filtro == 'pendientes' ? 'btn-primary shadow-sm' : 'btn-outline-secondary' }}">
+                                    <i class="fas fa-clock me-1"></i> {{ auth()->user()->role == 'viaticos' ? 'Agendas por Revisar' : 'Agendas por Firmar' }}
+                                </a>
+                                <a href="{{ route('inicio', ['ver' => 'borradores']) }}" 
+                                   class="btn btn-sm rounded-pill px-3 fw-bold transition-all {{ $filtro == 'borradores' ? 'btn-danger shadow-sm' : 'btn-outline-secondary' }}">
+                                    <i class="fas fa-trash-alt me-1"></i> Borradores del Sistema ({{ $stats['borradores'] ?? 0 }})
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        @if(auth()->user()->role == 'viaticos' && $filtro == 'enviadas')
+                            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-4 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalExportSupervisor">
+                                <i class="fas fa-user-tie me-2"></i> Por Supervisor
+                            </button>
+                            <button type="button" id="btn-export-bulk-dashboard" class="btn btn-success btn-sm rounded-pill px-4 shadow-sm d-none fw-bold">
+                                <i class="fas fa-file-excel me-2"></i> Descarga Masiva (<span id="selected-count-dashboard">0</span>)
+                            </button>
+                        @endif
+                        <a href="{{ route('inicio') }}" class="btn btn-light btn-sm rounded-pill px-3 border text-muted">
+                            <i class="fas fa-times me-1"></i> Cerrar Filtro
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th class="ps-4">CONTRATISTA</th>
+                    <div class="table-responsive px-2">
+                        <table class="table table-hover table-borderless align-middle mb-0" style="border-collapse: separate; border-spacing: 0 8px;">
+                            <thead>
+                                @php
+                                    $userRole = auth()->user()->role;
+                                    $isAdminRole = in_array($userRole, ['supervisor_contrato', 'ordenador_gasto']);
+                                    
+                                    // Ocultar Gestión en 'Devueltas' solo para admin
+                                    $showGestion = true;
+                                    if ($filtro == 'devueltas' && $userRole == 'administrador') {
+                                        $showGestion = false;
+                                    }
+                                @endphp
+                                <tr class="border-bottom border-light">
+                                    @if(auth()->user()->role == 'viaticos' && $filtro == 'enviadas')
+                                        <th class="ps-4 pb-3" style="width: 40px;">
+                                            <input type="checkbox" id="select-all-dashboard" class="form-check-input shadow-sm">
+                                        </th>
+                                    @endif
+                                    <th class="ps-4 pb-3 text-uppercase fw-bold text-muted text-nowrap" style="min-width: 150px; font-size: 0.7rem; letter-spacing: 0.5px;">Ruta / Destino</th>
+                                    @if(in_array($userRole, ['supervisor_contrato', 'ordenador_gasto', 'viaticos']))
+                                        <th class="pb-3 text-uppercase fw-bold text-muted text-nowrap" style="min-width: 120px; font-size: 0.7rem; letter-spacing: 0.5px;">Contratista</th>
+                                    @endif
+                                    <th class="pb-3 text-uppercase fw-bold text-muted text-nowrap" style="min-width: 100px; font-size: 0.7rem; letter-spacing: 0.5px;">Fechas</th>
                                     @if($filtro == 'devueltas')
-                                    <th>MOTIVO DE ERROR</th> @endif
-                                    <th class="text-center">PDF</th>
-                                    <th class="text-center">GESTIÓN</th>
+                                        <th class="pb-3 text-uppercase fw-bold text-muted text-center text-nowrap" style="min-width: 120px; font-size: 0.7rem; letter-spacing: 0.5px;">Motivo Error</th>
+                                    @else
+                                        <th class="pb-3 text-uppercase fw-bold text-muted text-center text-nowrap" style="min-width: 100px; font-size: 0.7rem; letter-spacing: 0.5px;">Estado</th>
+                                    @endif
+                                    @if($showGestion)
+                                        <th class="pb-3 text-center text-uppercase fw-bold text-muted text-nowrap" style="min-width: 130px; font-size: 0.7rem; letter-spacing: 0.5px;">Gestión</th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($agendas as $agenda)
-                                    <tr>
-                                        <td class="ps-4">
-                                            <div class="fw-bold text-dark text-uppercase fs-6">{{ $agenda->user->name ?? 'N/A' }}
+                                    <tr class="align-middle bg-white rounded-3 shadow-sm transition-all hover-translate-y">
+                                        @if(auth()->user()->role == 'viaticos' && $filtro == 'enviadas')
+                                            <td class="ps-4 py-3 rounded-start-3">
+                                                @if(in_array($agenda->estado->nombre, ['APROBADA_VIATICOS', 'APROBADA']))
+                                                    <input type="checkbox" name="ids[]" value="{{ $agenda->id }}" class="form-check-input agenda-checkbox-dashboard shadow-sm">
+                                                @else
+                                                    <input type="checkbox" class="form-check-input" disabled title="Aún no aprobada">
+                                                @endif
+                                            </td>
+                                        @endif
+                                        <td class="ps-4 py-3 {{ (auth()->user()->role != 'viaticos' || $filtro != 'enviadas') ? 'rounded-start-3' : '' }}">
+                                            <div class="fw-bold text-dark text-uppercase" style="font-size: 0.9rem;">
+                                                <i class="fas fa-route text-success me-2 opacity-75"></i> {{ $agenda->ruta }}
                                             </div>
-                                            <div class="small text-muted">ID Agenda: #{{ $agenda->id }}</div>
+                                            <div class="text-muted mt-1" style="font-size: 0.75rem;">
+                                                ID: <span class="fw-bold">#{{ $agenda->id }}</span> | 
+                                                @if($agenda->destinos)
+                                                    {{ implode(', ', array_unique(array_filter(array_map(fn($d) => $d['nombre'] ?? null, $agenda->destinos)))) }}
+                                                @else
+                                                    {{ $agenda->ciudad_destino ?: 'Sin destino' }}
+                                                @endif
+                                            </div>
                                         </td>
-
-                                        @if($filtro == 'devueltas')
-                                            <td>
-                                                <div class="text-danger small fw-bold">
-                                                    <i class="fas fa-comment-dots me-1"></i>
-                                                    {{ Str::limit($agenda->observaciones_finanzas, 80) }}
+                                        @if(in_array(auth()->user()->role, ['supervisor_contrato', 'ordenador_gasto', 'viaticos']))
+                                            <td class="py-3">
+                                                <div class="fw-bold text-dark" style="font-size: 0.85rem;">{{ $agenda->user->name ?? 'N/A' }}</div>
+                                                <div class="text-muted" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.3px;">
+                                                    {{ $agenda->user->categoria->nombre ?? 'N/A' }}
                                                 </div>
                                             </td>
                                         @endif
+                                        <td class="py-3">
+                                            <div class="d-flex flex-column gap-1">
+                                                <span class="fw-bold text-dark" style="font-size: 0.8rem;"><i class="fas fa-calendar-alt text-muted me-1 opacity-50"></i> {{ $agenda->fecha_inicio?->format('d/m/Y') }}</span>
+                                                <span class="text-muted" style="font-size: 0.8rem;"><i class="fas fa-arrow-right text-muted me-1 opacity-50"></i> {{ $agenda->fecha_fin?->format('d/m/Y') }}</span>
+                                            </div>
+                                        </td>
+                                        
+                                        @if($filtro == 'devueltas')
+                                            <td class="text-center py-3 {{ !$showGestion ? 'rounded-end-3' : '' }}">
+                                                <div class="d-inline-block p-2 rounded-4 bg-danger bg-opacity-10 border border-danger border-opacity-25 clickable-badge transition-all shadow-sm" 
+                                                     style="cursor: pointer; min-width: 100px;" 
+                                                     data-bs-toggle="modal" 
+                                                     data-bs-target="#modalGestion{{ $agenda->id }}"
+                                                     title="Ver detalles de devolución">
+                                                    <div class="text-danger fw-bold small text-uppercase mb-1" style="font-size: 0.7rem;">
+                                                        <i class="fas fa-undo-alt me-1"></i> Devuelta
+                                                    </div>
+                                                    <div class="text-dark fw-medium" style="font-size: 0.65rem; line-height: 1.1;">
+                                                        {{ Str::limit($agenda->observaciones_finanzas, 30) }}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        @else
+                                            <td class="text-center py-3 {{ !$showGestion ? 'rounded-end-3' : '' }}">
+                                                @php
+                                                    $est = $agenda->estado->nombre ?? 'N/A';
+                                                    $badgeStyle = match(strtoupper($est)) {
+                                                        'BORRADOR' => 'background-color: #64748b; color: white;',
+                                                        'ENVIADA' => 'background-color: #0ea5e9; color: white;',
+                                                        'APROBADA_SUPERVISOR' => 'background-color: #10b981; color: white;',
+                                                        'APROBADA_VIATICOS' => 'background-color: #8b5cf6; color: white;',
+                                                        'APROBADA' => 'background-color: #39a900; color: white;',
+                                                        default => 'background-color: #334155; color: white;'
+                                                    };
+                                                @endphp
+                                                <span class="badge rounded-pill px-3 py-2 text-uppercase fw-bold shadow-sm" style="{{ $badgeStyle }} font-size: 0.68rem; letter-spacing: 0.5px;">
+                                                    {{ str_replace('_', ' ', $est) }}
+                                                </span>
+                                            </td>
+                                        @endif
 
-                                        <td class="text-center">
-                                            <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank"
-                                                class="btn btn-link text-danger p-0">
-                                                <i class="fas fa-file-pdf fa-2x"></i>
-                                            </a>
+                                        @if($showGestion)
+                                        <td class="text-center py-3 rounded-end-3">
+                                            <div class="d-flex justify-content-center gap-2">
+                                                @php
+                                                    $userRole = auth()->user()->role;
+                                                    $isOwner = in_array($userRole, ['contratista', 'funcionario']) && $agenda->user_id == auth()->id();
+                                                    $isSupervisor = in_array($userRole, ['supervisor_contrato', 'ordenador_gasto']);
+                                                    $estadoNombre = $agenda->estado->nombre ?? '';
+                                                @endphp
+
+                                                @if($isOwner)
+                                                    {{-- Caso 1: Devueltas --}}
+                                                    @if($filtro == 'devueltas')
+                                                        <a href="{{ route('formulario', $agenda->id) }}" class="btn btn-warning btn-sm rounded-pill px-2 px-md-3 fw-bold shadow-sm text-dark" title="Corregir">
+                                                            <i class="fas fa-exclamation-triangle"></i> <span class="d-none d-md-inline ms-1">Corregir</span>
+                                                        </a>
+                                                        <a href="{{ route('reportes.show', $agenda->id) }}" class="btn btn-success btn-sm rounded-pill px-2 px-md-3 fw-bold shadow-sm" title="Reportar Actividades">
+                                                            <i class="fas fa-calendar-check"></i> <span class="d-none d-md-inline ms-1">Reportar Actividades</span>
+                                                        </a>
+                                                        <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank" class="btn btn-outline-danger btn-sm rounded-pill px-2 px-md-3 fw-bold shadow-sm bg-white" title="Ver PDF">
+                                                            <i class="fas fa-file-pdf"></i> <span class="d-none d-md-inline ms-1">PDF</span>
+                                                        </a>
+                                                    @endif
+
+                                                    {{-- Caso 2: Pendientes --}}
+                                                    @if($filtro == 'pendientes' && $estadoNombre == 'BORRADOR')
+                                                        <a href="{{ route('formulario', $agenda->id) }}" class="btn btn-outline-success btn-sm rounded-pill px-2 px-md-3 fw-bold shadow-sm bg-white" title="Editar">
+                                                            <i class="fas fa-edit"></i> <span class="d-none d-md-inline ms-1">Editar</span>
+                                                        </a>
+                                                        <a href="{{ route('reportes.show', $agenda->id) }}" class="btn btn-success btn-sm rounded-pill px-2 px-md-3 fw-bold shadow-sm" title="Reportar Actividades">
+                                                            <i class="fas fa-calendar-check"></i> <span class="d-none d-md-inline ms-1">Reportar Actividades</span>
+                                                        </a>
+                                                        <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank" class="btn btn-outline-danger btn-sm rounded-pill px-2 px-md-3 fw-bold shadow-sm bg-white" title="Ver PDF">
+                                                            <i class="fas fa-file-pdf"></i> <span class="d-none d-md-inline ms-1">PDF</span>
+                                                        </a>
+                                                        <form action="{{ route('reportar-dia.enviar', $agenda->id) }}" method="POST" class="d-inline form-enviar">
+                                                            @csrf
+                                                            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-2 px-md-3 fw-bold shadow-sm btn-enviar-confirm"
+                                                                    data-total="{{ \Carbon\Carbon::parse($agenda->fecha_inicio)->diffInDays(\Carbon\Carbon::parse($agenda->fecha_fin)) + 1 }}"
+                                                                    data-reportados="{{ $agenda->actividades->count() }}" title="Enviar Agenda">
+                                                                <i class="fas fa-paper-plane"></i> <span class="d-none d-md-inline ms-1">Enviar</span>
+                                                            </button>
+                                                        </form>
+                                                    @endif
+
+                                                    {{-- Caso Proceso/Finalizadas --}}
+                                                    @if(in_array($filtro, ['enviadas', 'finalizadas']))
+                                                        <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank" class="btn btn-outline-success btn-sm rounded-pill px-2 px-md-3 fw-bold shadow-sm" title="Ver PDF">
+                                                            <i class="fas fa-file-pdf"></i> <span class="d-none d-md-inline">PDF {{ $filtro == 'finalizadas' ? 'Final' : 'Previa' }}</span>
+                                                        </a>
+                                                    @endif
+                                                @endif
+
+                                                @if($isSupervisor)
+                                                    @if($filtro == 'pendientes')
+                                                        <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank" class="btn btn-outline-success btn-sm rounded-pill px-2 px-md-3 fw-bold shadow-sm" title="Ver PDF">
+                                                            <i class="fas fa-file-pdf"></i> <span class="d-none d-md-inline">PDF</span>
+                                                        </a>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2 px-md-3 shadow-sm fw-bold d-inline-flex align-items-center btn-open-devolver"
+                                                            data-id="{{ $agenda->id }}" 
+                                                            data-nombre="{{ $agenda->user->name ?? 'N/A' }}"
+                                                            data-role="{{ $userRole }}"
+                                                            title="Devolver">
+                                                            <i class="fas fa-undo"></i> <span class="d-none d-md-inline ms-1">Devolver</span>
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-2 px-md-3 shadow-sm fw-bold d-inline-flex align-items-center btn-open-firma"
+                                                            data-id="{{ $agenda->id }}" 
+                                                            data-nombre="{{ $agenda->user->name ?? 'N/A' }}"
+                                                            data-role="{{ $userRole }}"
+                                                            title="Firmar">
+                                                            <i class="fas fa-pen-nib"></i> <span class="d-none d-md-inline ms-1">Firmar</span>
+                                                        </button>
+                                                    @endif
+                                                    @if(in_array($filtro, ['enviadas', 'finalizadas']))
+                                                        <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank" class="btn btn-outline-success btn-sm rounded-pill px-2 px-md-3 fw-bold shadow-sm" title="Ver PDF">
+                                                            <i class="fas fa-file-pdf"></i> <span class="d-none d-md-inline">Ver PDF</span>
+                                                        </a>
+                                                    @endif
+
+                                                    {{-- Botón Eliminar para Supervisor (Cualquier estado) --}}
+                                                    <form action="{{ route('reportes.destroy', $agenda->id) }}" method="POST" class="d-inline form-eliminar">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-link text-danger btn-sm p-2" title="Eliminar Agenda Permanentemente">
+                                                            <i class="fas fa-trash-alt fa-lg"></i>
+                                                        </button>
+                                                    </form>
+                                                @endif
+
+                                                {{-- Caso 4: Viáticos (Excel, Gestión) --}}
+                                                @if($userRole == 'viaticos')
+                                                    @if(in_array($estadoNombre, ['APROBADA_VIATICOS', 'APROBADA']))
+                                                        <a href="{{ route('viaticos.export', $agenda->id) }}" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm fw-bold">
+                                                            <i class="fas fa-file-excel me-1"></i> Excel
+                                                        </a>
+                                                    @endif
+
+                                                    <a href="{{ route('viaticos.gestionar', ['id' => $agenda->id, 'tab' => $filtro]) }}" 
+                                                       class="btn btn-outline-dark btn-sm rounded-pill px-3 fw-bold shadow-sm">
+                                                        <i class="fas fa-tasks me-1"></i> Gestión
+                                                    </a>
+                                                    
+                                                    @if($filtro === 'borradores' && $estadoNombre === 'BORRADOR')
+                                                        <form action="{{ route('reportes.destroy', $agenda->id) }}" method="POST" class="d-inline form-eliminar">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold shadow-sm">
+                                                                <i class="fas fa-trash-alt me-1"></i> Eliminar
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                @endif
+                                            </div>
+
                                         </td>
-                                        <td class="text-center">
-                                            <button
-                                                class="btn {{ (auth()->user()->role === 'supervisor_contrato' && $agenda->estado && $agenda->estado->nombre == 'ENVIADA' && !$agenda->observaciones_finanzas) ? 'btn-dark' : 'btn-secondary' }} btn-sm rounded-pill px-4 fw-bold shadow-sm"
-                                                data-bs-toggle="modal" data-bs-target="#modalGestion{{ $agenda->id }}">
-                                                Ver Info
-                                            </button>
-                                        </td>
+                                        @endif
+
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="text-center p-5 text-muted">No hay registros para mostrar.</td>
+                                        @php
+                                            $colSpan = 4;
+                                            if(in_array($userRole, ['supervisor_contrato', 'ordenador_gasto', 'viaticos'])) $colSpan++;
+                                            if($showGestion) $colSpan++;
+                                        @endphp
+                                        <td colspan="{{ $colSpan }}" class="text-center p-5 text-muted">
+                                            <i class="fas fa-folder-open fa-3x mb-3 opacity-25"></i>
+                                            <p class="mb-0 fs-5">No hay registros para mostrar en esta categoría.</p>
+                                            @if(request('search'))
+                                                <a href="{{ route('inicio', ['ver' => $filtro]) }}" class="btn btn-link text-success p-0 mt-2">Limpiar búsqueda</a>
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
                 </div>
+                <div class="card-footer bg-white border-0 py-4 d-flex justify-content-center">
+                    <div class="pagination-container shadow-sm p-1 bg-light rounded-pill d-inline-block">
+                        {{ $agendas->links() }}
+                    </div>
+                </div>
             </div>
         @endif
     </div>
 
-    {{-- MODALES DINÁMICOS --}}
     @foreach($agendas as $agenda)
+        {{-- MODAL GESTIÓN BÁSICA (DASHBOARD) --}}
         <div class="modal fade" id="modalGestion{{ $agenda->id }}" tabindex="-1" aria-hidden="true">
+            {{-- ... contenido del modal gestión ... --}}
             <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow-lg rounded-4">
-                    <div class="modal-header border-0 bg-light p-4">
-                        <h5 class="fw-bold mb-0">Detalles de la Agenda #{{ $agenda->id }}</h5>
+                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                    <div class="modal-header border-0 bg-white p-4 pb-0">
+                        <h5 class="fw-bold mb-0 text-dark fs-4">Detalles de la Agenda #{{ $agenda->id }}</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
 
-
-                    <div class="modal-body p-4">
-                        <div class="mb-4 p-3 bg-light border rounded-3 d-flex align-items-center justify-content-between">
-                            <div>
-                                <i class="fas fa-file-pdf fa-2x text-danger me-2"></i>
-                                <span class="fw-bold small text-dark">DOCUMENTO PDF</span>
+                    <div class="modal-body p-4 text-center">
+                        {{-- Fila PDF --}}
+                        <div class="bg-light rounded-4 p-3 d-flex align-items-center justify-content-between mb-4 border border-opacity-10">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-file-pdf fa-2x text-danger me-3"></i>
+                                <span class="fw-bold text-dark small text-uppercase" style="letter-spacing: 0.5px;">Documento PDF</span>
                             </div>
-                            <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank"
-                                class="btn btn-sm btn-danger rounded-pill px-4 shadow-sm fw-bold">
+                            <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank" 
+                               class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm btn-sm">
                                 ABRIR ARCHIVO
                             </a>
                         </div>
 
-                        <div class="text-center mb-4">
-                            <label class="small text-muted fw-bold d-block">CONTRATISTA REGISTRADO</label>
-                            <p class="fs-4 fw-bold text-dark text-uppercase mb-0">{{ $agenda->user->name ?? 'N/A' }}</p>
+                        {{-- Responsable --}}
+                        <div class="mb-4">
+                            <label class="small text-muted fw-bold d-block text-uppercase mb-1" style="letter-spacing: 1px;">
+                                {{ auth()->user()->role === 'funcionario' ? 'Comisionado Registrado' : 'Contratista Registrado' }}
+                            </label>
+                            <h2 class="fw-bold text-dark text-uppercase mb-0" style="font-size: 1.75rem; letter-spacing: -0.5px;">{{ $agenda->user->name ?? 'N/A' }}</h2>
                         </div>
 
-                        {{-- Gestión de Observaciones (Solo lectura para Supervisor en Dashboard) --}}
+                        {{-- Observaciones de Devolución --}}
                         @if($agenda->observaciones_finanzas)
-                            <div class="p-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded-3">
-                                <label class="small fw-bold text-warning-emphasis">NOTA DE REVISIÓN:</label>
-                                <p class="mb-0 small text-dark text-italic">"{{ $agenda->observaciones_finanzas }}"</p>
+                            <div class="mt-4 p-4 rounded-4 text-start border border-warning border-opacity-25" style="background-color: #fffbeb;">
+                                <label class="small fw-bold text-warning-emphasis text-uppercase mb-2 d-block" style="letter-spacing: 0.5px;">
+                                    <i class="fas fa-comment-dots me-1"></i> Nota de Revisión:
+                                </label>
+                                <p class="mb-0 text-dark fw-medium" style="font-style: italic; font-size: 0.95rem; color: #92400e !important;">
+                                    "{{ $agenda->observaciones_finanzas }}"
+                                </p>
+                            </div>
+                        @else
+                            {{-- Info de Ruta si no hay observaciones --}}
+                            <div class="mt-4 p-3 bg-light rounded-4 border border-opacity-10 text-start">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label class="small text-muted fw-bold d-block text-uppercase mb-1">Ruta</label>
+                                        <p class="fw-bold text-dark mb-0 small"><i class="fas fa-route me-1 text-success"></i> {{ $agenda->ruta }}</p>
+                                    </div>
+                                    <div class="col-6 text-end">
+                                        <label class="small text-muted fw-bold d-block text-uppercase mb-1">Periodo</label>
+                                        <p class="fw-bold text-dark mb-0 small">{{ $agenda->fecha_inicio?->format('d/m/Y') }} - {{ $agenda->fecha_fin?->format('d/m/Y') }}</p>
+                                    </div>
+                                </div>
                             </div>
                         @endif
                     </div>
 
                     <div class="modal-footer border-0 p-4 pt-0 d-flex justify-content-center">
-                        <button type="button" class="btn btn-secondary rounded-pill px-4 fw-bold"
+                        <button type="button" class="btn btn-secondary rounded-pill px-5 fw-bold shadow-sm" style="background-color: #64748b; border: none;"
                             data-bs-dismiss="modal">Cerrar</button>
                     </div>
                 </div>
             </div>
         </div>
+
+    {{-- MODAL UNIVERSAL DE FIRMA --}}
+    <div class="modal fade text-start" id="modalFirmaUniversal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+                <form id="formFirmaUniversal" method="POST" class="form-autorizar-agenda">
+                    @csrf
+                    <div class="modal-header border-0 bg-primary bg-opacity-10 py-3">
+                        <h5 class="modal-title fw-bold text-primary"><i class="fas fa-pen-nib me-2"></i>Autorización de Agenda</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4 text-start">
+                        <p class="text-muted mb-3">
+                            Al firmar esta agenda, certifica la revisión técnica de las actividades reportadas por <strong id="firma-nombre-usuario">...</strong>.
+                        </p>
+                        <div class="alert alert-info py-2 small d-flex align-items-center rounded-3 border-0 shadow-sm">
+                            <i class="fas fa-info-circle me-2 fs-5"></i>
+                            <span>Se utilizará su <strong>Firma Digital</strong> registrada para autorizar esta agenda.</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-4 pt-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                            <i class="fas fa-check-circle me-1"></i> Confirmar y Firmar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- MODAL UNIVERSAL DE DEVOLVER --}}
+    <div class="modal fade text-start" id="modalDevolverUniversal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+                <form id="formDevolverUniversal" method="POST">
+                    @csrf
+                    <div class="modal-header border-0 bg-danger bg-opacity-10 text-danger py-3">
+                        <h5 class="modal-title fw-bold"><i class="fas fa-undo me-2"></i>Devolver Agenda</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4 text-start">
+                        <p class="text-muted small mb-3">
+                            Está a punto de devolver la agenda de <strong id="devolver-nombre-usuario">...</strong>. Indique el motivo para que el usuario pueda ajustarla.
+                        </p>
+                        <label class="form-label fw-bold text-dark small text-uppercase">Motivo de la corrección <span class="text-danger">*</span></label>
+                        <textarea class="form-control rounded-3 border-2" name="observaciones" rows="4" placeholder="Ej: Faltan detalles en la ruta o actividades..." required maxlength="500"></textarea>
+                    </div>
+                    <div class="modal-footer border-0 p-4 pt-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm">
+                            <i class="fas fa-paper-plane me-1"></i> Enviar a Corrección
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     @endforeach
 
+    {{-- MODAL EXPORTAR POR SUPERVISOR (DASHBOARD) --}}
+    @if(auth()->user()->role == 'viaticos')
+    <div class="modal fade" id="modalExportSupervisor" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header border-bottom-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold">Exportar Agendas por Supervisor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small text-uppercase mb-2">Seleccione el Supervisor</label>
+                        <select id="select-supervisor-modal-dashboard" class="form-select rounded-pill shadow-sm border-0 bg-light px-4">
+                            <option value="">-- Buscar Supervisor --</option>
+                            @foreach($supervisores as $sup)
+                                <option value="{{ $sup->id }}">{{ $sup->nombre }} ({{ $sup->cargo }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div id="agendas-supervisor-container-dashboard" class="d-none">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0 text-dark">Agendas Aprobadas Encontradas</h6>
+                            <span id="agendas-count-dashboard" class="badge bg-primary rounded-pill px-3">0 agendas</span>
+                        </div>
+                        <div class="table-responsive rounded-3 border">
+                            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th>Contratista</th>
+                                        <th>Ruta/Destino</th>
+                                        <th>Fecha</th>
+                                        <th class="text-center">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="agendas-supervisor-list-dashboard">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="no-agendas-msg-dashboard" class="text-center py-5 d-none">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No se encontraron agendas aprobadas para este supervisor.</p>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pb-4 px-4">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <form id="form-export-supervisor-dashboard" action="{{ route('viaticos.exportBulk') }}" method="POST" class="d-none">
+                        @csrf
+                        <div id="hidden-ids-container-dashboard"></div>
+                        <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold">
+                            <i class="fas fa-file-excel me-2"></i> Descargar Todas
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    @push('scripts')
     <style>
-        .card {
-            transition: all 0.2s ease;
+        .transition-all {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .transition-all:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+        .card.bg-primary.text-white i, .card.bg-success.text-white i, .card.bg-danger.text-white i {
+            color: rgba(255,255,255,0.3) !important;
         }
 
-        .text-decoration-none:hover .card {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+        /* Estilo para la paginación circular */
+        .pagination-container nav > div:first-child,
+        .pagination-container nav div.d-none.flex-sm-fill > div:first-child,
+        .pagination-container nav p.text-muted {
+            display: none !important;
+        }
+        
+        .pagination-container nav ul.pagination {
+            margin-bottom: 0;
+            gap: 5px;
+        }
+
+        .pagination-container .page-item .page-link {
+            border-radius: 50% !important;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            color: #4b5563;
+            font-weight: 600;
+            background: transparent;
+            transition: all 0.2s;
+        }
+
+        .pagination-container .page-item.active .page-link {
+            background-color: #39a900 !important;
+            color: white !important;
+            box-shadow: 0 4px 6px -1px rgba(57, 169, 0, 0.4);
+        }
+
+        .pagination-container .page-item:not(.active) .page-link:hover {
+            background-color: #f1f5f9;
+            color: #39a900;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(document).ready(function() {
+            // Confirmación de envío
+            $('.btn-enviar-confirm').on('click', function(e) {
+                e.preventDefault();
+                const btn = $(this);
+                const form = btn.closest('.form-enviar');
+                const total = parseInt(btn.data('total'));
+                const reportados = parseInt(btn.data('reportados'));
+
+                if (reportados < total) {
+                    Swal.fire({
+                        title: 'Reporte Incompleto',
+                        html: `Esta agenda es de <b>${total} días</b>, pero solo has reportado <b>${reportados} día(s)</b>.<br><br>Debes reportar todos los días antes de enviar.`,
+                        icon: 'warning',
+                        confirmButtonColor: '#39a900'
+                    });
+                    return;
+                }
+
+                Swal.fire({
+                    title: '¿Enviar Agenda?',
+                    text: "Una vez enviada no podrás modificarla hasta que sea revisada.",
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#39a900',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sí, enviar ahora',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+
+            // Confirmación de eliminación
+            $('.form-eliminar').on('submit', function(e) {
+                e.preventDefault();
+                const form = this;
+                Swal.fire({
+                    title: '¿Eliminar Agenda?',
+                    text: "Esta acción es permanente y no se puede deshacer.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+
+            // --- LÓGICA DE MODALES UNIVERSALES (EVITA PARPADEO) ---
+            
+            // Abrir Modal de Firma
+            $('.btn-open-firma').on('click', function() {
+                const id = $(this).data('id');
+                const nombre = $(this).data('nombre');
+                const role = $(this).data('role');
+                
+                // Definir ruta según rol
+                let action = role === 'supervisor_contrato' 
+                    ? "{{ route('supervisor_contrato.autorizar', ':id') }}" 
+                    : "{{ route('ordenador_gasto.autorizar', ':id') }}";
+                
+                $('#formFirmaUniversal').attr('action', action.replace(':id', id));
+                $('#firma-nombre-usuario').text(nombre);
+                $('#modalFirmaUniversal').modal('show');
+            });
+
+            // Abrir Modal de Devolución
+            $('.btn-open-devolver').on('click', function() {
+                const id = $(this).data('id');
+                const nombre = $(this).data('nombre');
+                const role = $(this).data('role');
+                
+                // Definir ruta según rol
+                let action = role === 'supervisor_contrato' 
+                    ? "{{ route('supervisor_contrato.devolver', ':id') }}" 
+                    : "{{ route('ordenador_gasto.devolver', ':id') }}";
+                
+                $('#formDevolverUniversal').attr('action', action.replace(':id', id));
+                $('#devolver-nombre-usuario').text(nombre);
+                $('#modalDevolverUniversal').modal('show');
+            });
+
+            // Validación de firma para supervisores
+            $('.form-autorizar-agenda').on('submit', function(e) {
+                @php
+                    $user = auth()->user();
+                    $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
+                    $actualHasFirma = (!empty($user->firma) && $funcionario && !empty($funcionario->firma)) ? 'true' : 'false';
+                @endphp
+                const hasFirma = {{ $actualHasFirma }};
+                
+                if (!hasFirma) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: 'Firma No Encontrada',
+                        text: 'Debes cargar tu firma digital en el perfil antes de autorizar agendas.',
+                        icon: 'error',
+                        confirmButtonColor: '#39a900',
+                        confirmButtonText: 'Cargar Firma'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $('#modalFirmaUsuario').modal('show');
+                        }
+                    });
+                }
+            });
+        });
+
+        {{-- Lógica de Viáticos para el Dashboard --}}
+        @if(auth()->user()->role == 'viaticos')
+            // 1. Selección masiva en el dashboard
+            const selectAllDashboard = document.getElementById('select-all-dashboard');
+            const checkboxesDashboard = document.querySelectorAll('.agenda-checkbox-dashboard');
+            const btnExportBulkDashboard = document.getElementById('btn-export-bulk-dashboard');
+            const selectedCountDashboard = document.getElementById('selected-count-dashboard');
+
+            function updateBulkButtonDashboard() {
+                if (!btnExportBulkDashboard || !selectedCountDashboard) return;
+                const checkedCount = document.querySelectorAll('.agenda-checkbox-dashboard:checked').length;
+                selectedCountDashboard.textContent = checkedCount;
+                if (checkedCount > 0) {
+                    btnExportBulkDashboard.classList.remove('d-none');
+                } else {
+                    btnExportBulkDashboard.classList.add('d-none');
+                }
+            }
+
+            if (selectAllDashboard) {
+                selectAllDashboard.addEventListener('change', function() {
+                    checkboxesDashboard.forEach(cb => {
+                        cb.checked = selectAllDashboard.checked;
+                    });
+                    updateBulkButtonDashboard();
+                });
+            }
+
+            checkboxesDashboard.forEach(cb => {
+                cb.addEventListener('change', function() {
+                    updateBulkButtonDashboard();
+                    if (selectAllDashboard) {
+                        if (!this.checked) {
+                            selectAllDashboard.checked = false;
+                        } else if (document.querySelectorAll('.agenda-checkbox-dashboard:checked').length === checkboxesDashboard.length) {
+                            selectAllDashboard.checked = true;
+                        }
+                    }
+                });
+            });
+
+            if (btnExportBulkDashboard) {
+                btnExportBulkDashboard.addEventListener('click', function() {
+                    const selectedIds = Array.from(document.querySelectorAll('.agenda-checkbox-dashboard:checked')).map(cb => cb.value);
+                    if (selectedIds.length === 0) return;
+
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = "{{ route('viaticos.exportBulk') }}";
+                    
+                    const csrf = document.createElement('input');
+                    csrf.type = 'hidden';
+                    csrf.name = '_token';
+                    csrf.value = "{{ csrf_token() }}";
+                    form.appendChild(csrf);
+
+                    selectedIds.forEach(id => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'ids[]';
+                        input.value = id;
+                        form.appendChild(input);
+                    });
+
+                    document.body.appendChild(form);
+                    form.submit();
+                });
+            }
+
+            // 2. Exportar por Supervisor (Dashboard)
+            const selectSupervisorDashboard = document.getElementById('select-supervisor-modal-dashboard');
+            const agendasContainerDashboard = document.getElementById('agendas-supervisor-container-dashboard');
+            const agendasListDashboard = document.getElementById('agendas-supervisor-list-dashboard');
+            const noAgendasMsgDashboard = document.getElementById('no-agendas-msg-dashboard');
+            const agendasCountBadgeDashboard = document.getElementById('agendas-count-dashboard');
+            const formExportSupervisorDashboard = document.getElementById('form-export-supervisor-dashboard');
+            const hiddenIdsContainerDashboard = document.getElementById('hidden-ids-container-dashboard');
+
+            if (selectSupervisorDashboard) {
+                selectSupervisorDashboard.addEventListener('change', function() {
+                    const supervisorId = this.value;
+                    if (!supervisorId) {
+                        agendasContainerDashboard.classList.add('d-none');
+                        noAgendasMsgDashboard.classList.add('d-none');
+                        formExportSupervisorDashboard.classList.add('d-none');
+                        return;
+                    }
+
+                    agendasListDashboard.innerHTML = '<tr><td colspan="4" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Cargando...</td></tr>';
+                    agendasContainerDashboard.classList.remove('d-none');
+                    noAgendasMsgDashboard.classList.add('d-none');
+                    formExportSupervisorDashboard.classList.add('d-none');
+
+                    fetch(`{{ route('viaticos.agendasPorSupervisor') }}?supervisor_id=${supervisorId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.agendas.length > 0) {
+                                agendasListDashboard.innerHTML = '';
+                                hiddenIdsContainerDashboard.innerHTML = '';
+                                agendasCountBadgeDashboard.textContent = `${data.agendas.length} agendas`;
+
+                                data.agendas.forEach(agenda => {
+                                    const row = `
+                                        <tr>
+                                            <td class="fw-bold">${agenda.contratista}</td>
+                                            <td>${agenda.destino}</td>
+                                            <td>${agenda.fecha_inicio}</td>
+                                            <td class="text-center"><span class="badge bg-success bg-opacity-10 text-success small">${agenda.estado}</span></td>
+                                        </tr>
+                                    `;
+                                    agendasListDashboard.insertAdjacentHTML('beforeend', row);
+
+                                    const input = `<input type="hidden" name="ids[]" value="${agenda.id}">`;
+                                    hiddenIdsContainerDashboard.insertAdjacentHTML('beforeend', input);
+                                });
+                                formExportSupervisorDashboard.classList.remove('d-none');
+                            } else {
+                                agendasContainerDashboard.classList.add('d-none');
+                                noAgendasMsgDashboard.classList.remove('d-none');
+                            }
+                        });
+                });
+            }
+        @endif
+    </script>
+    @endpush
 @endsection

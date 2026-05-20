@@ -10,6 +10,7 @@ class ViaticosController extends Controller
 {
     public function index(Request $request)
     {
+        return redirect()->route('inicio');
         // Traemos las agendas que están en revisión técnica (APROBADA_SUPERVISOR)
         // Y también las enviadas o liquidadas para el historial
         $baseQuery = AgendaDesplazamiento::with(['user', 'estado'])
@@ -23,14 +24,15 @@ class ViaticosController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $baseQuery->where(function($q) use ($search) {
-                $q->whereHas('user', function($qu) use ($search) {
-                    $qu->where('name', 'like', "%$search%")
-                       ->orWhere('numero_documento', 'like', "%$search%");
+                $searchEscaped = str_replace(['%', '_'], ['\%', '\_'], $search);
+                $q->whereHas('user', function($qu) use ($searchEscaped) {
+                    $qu->where('name', 'like', "%$searchEscaped%")
+                       ->orWhere('numero_documento', 'like', "%$searchEscaped%");
                 })
-                ->orWhere('ruta', 'like', "%$search%")
-                ->orWhere('destinos', 'like', "%$search%")
-                ->orWhereRaw("DATE_FORMAT(fecha_inicio, '%d/%m/%Y') LIKE ?", ["%$search%"])
-                ->orWhereRaw("DATE_FORMAT(fecha_fin, '%d/%m/%Y') LIKE ?", ["%$search%"]);
+                ->orWhere('ruta', 'like', "%$searchEscaped%")
+                ->orWhere('destinos', 'like', "%$searchEscaped%")
+                ->orWhereRaw("DATE_FORMAT(fecha_inicio, '%d/%m/%Y') LIKE ?", ["%$searchEscaped%"])
+                ->orWhereRaw("DATE_FORMAT(fecha_fin, '%d/%m/%Y') LIKE ?", ["%$searchEscaped%"]);
             });
         }
 
@@ -102,7 +104,7 @@ class ViaticosController extends Controller
                 'estado_id' => $estadoLiquidada->id,
                 'observaciones_finanzas' => $request->observaciones
             ]);
-            return redirect()->route('viaticos.index')->with('success', 'Agenda aprobada correctamente.');
+            return redirect()->route('inicio', ['ver' => 'enviadas'])->with('success', 'Agenda aprobada correctamente.');
         }
 
         if ($request->accion == 'devolver') {
@@ -113,7 +115,7 @@ class ViaticosController extends Controller
                 'observaciones_finanzas' => $request->observaciones
             ]);
 
-            return redirect()->route('viaticos.index')->with('warning', 'Agenda devuelta al usuario para corrección.');
+            return redirect()->route('inicio', ['ver' => 'devueltas'])->with('warning', 'Agenda devuelta al usuario para corrección.');
         }
 
         return redirect()->back()->with('error', 'Acción no reconocida.');

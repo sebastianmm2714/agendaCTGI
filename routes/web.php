@@ -20,7 +20,7 @@ Route::middleware('guest')->group(function () {
         }
         );
         Route::get('/login', [AuthenticatedSessionController::class , 'create'])->name('login');
-        Route::post('/login', [AuthenticatedSessionController::class , 'store']);
+        Route::post('/login', [AuthenticatedSessionController::class , 'store'])->middleware('throttle:5,1');
     });
 
 // --- REDIRECCIÓN INICIAL POST-LOGIN ---
@@ -35,8 +35,26 @@ Route::middleware('auth')->group(function () {
     // 1. INICIO DINÁMICO
     Route::get('/inicio', [DashboardController::class , 'index'])->name('inicio');
 
-    // Route::get('/api/destinos', [FormularioController::class , 'getDestinos']); // Eliminado por duplicación con api.php
-    Route::post('/perfil/firma', [ProfileController::class, 'updateSignature'])->name('user.signature.update');
+    Route::get('/api/destinos', function () {
+        return \App\Models\Departamento::with('municipios:id,nombre,departamento_id')
+            ->select('id', 'nombre')
+            ->orderBy('nombre')
+            ->get()
+            ->map(function ($dep) {
+                return [
+                    'id'=> $dep->id,
+                    'nombre' => mb_strtoupper($dep->nombre, 'UTF-8'),
+                    'municipios' => $dep->municipios->map(function ($mun) {
+                        return [
+                            'id'=> $mun->id,
+                            'nombre' => mb_strtoupper($mun->nombre, 'UTF-8'),
+                            'departamento_id' => $mun->departamento_id,
+                        ];
+                    }),
+                ];
+            })->values();
+    });
+    Route::post('/perfil/firma', [ProfileController::class, 'updateSignature'])->name('user.signature.update')->middleware('throttle:10,1');
 
 
 
@@ -70,6 +88,7 @@ Route::middleware('auth')->group(function () {
         Route::middleware(['role:ordenador_gasto'])->group(function () {
             Route::get('/subdirector/bandeja', [SubdirectorController::class , 'index'])->name('ordenador_gasto.index');
             Route::post('/subdirector/firmar/{id}', [SubdirectorController::class , 'autorizar'])->name('ordenador_gasto.autorizar');
+            Route::post('/subdirector/devolver/{id}', [SubdirectorController::class, 'devolver'])->name('ordenador_gasto.devolver');
         }
         );
 
@@ -94,7 +113,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/viaticos/personal', [ViaticosPersonalController::class , 'store'])->name('viaticos.personal.store');
             Route::put('/viaticos/personal/{user}', [ViaticosPersonalController::class , 'update'])->name('viaticos.personal.update');
             Route::delete('/viaticos/personal/{user}', [ViaticosPersonalController::class , 'destroy'])->name('viaticos.personal.destroy');
-            Route::get('/viaticos/personal/check-document', [ViaticosPersonalController::class , 'checkDocument'])->name('viaticos.personal.checkDocument');
+            Route::get('/viaticos/personal/check-document', [ViaticosPersonalController::class , 'checkDocument'])->name('viaticos.personal.checkDocument')->middleware('throttle:30,1');
         }
         );
 
@@ -109,13 +128,13 @@ Route::middleware('auth')->group(function () {
             Route::resource('obligaciones', App\Http\Controllers\Admin\ObligacionController::class)->only(['index', 'store', 'update', 'destroy']);
             
             // CRUD Usuarios y Funcionarios
-            Route::get('/usuarios/check-document', [App\Http\Controllers\Admin\UserController::class, 'checkDocument'])->name('usuarios.checkDocument');
+            Route::get('/usuarios/check-document', [App\Http\Controllers\Admin\UserController::class, 'checkDocument'])->name('usuarios.checkDocument')->middleware('throttle:30,1');
             Route::resource('usuarios', App\Http\Controllers\Admin\UserController::class);
             Route::resource('lideres_de_proceso', App\Http\Controllers\Admin\LiderDeProcesoController::class);
 
             // Carga Masiva
             Route::get('/carga-masiva', [App\Http\Controllers\Admin\CargaMasivaController::class, 'index'])->name('carga-masiva.index');
-            Route::post('/carga-masiva/importar', [App\Http\Controllers\Admin\CargaMasivaController::class, 'importar'])->name('carga-masiva.importar');
+            Route::post('/carga-masiva/importar', [App\Http\Controllers\Admin\CargaMasivaController::class, 'importar'])->name('carga-masiva.importar')->middleware('throttle:3,1');
             Route::get('/carga-masiva/descargar-reporte', [App\Http\Controllers\Admin\CargaMasivaController::class, 'descargarReporte'])->name('carga-masiva.descargar');
             Route::get('/carga-masiva/descargar-historial/{id}', [App\Http\Controllers\Admin\CargaMasivaController::class, 'descargarReporteHistorial'])->name('carga-masiva.descargar_historial');
         });

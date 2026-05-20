@@ -26,8 +26,7 @@ class ProfileController extends Controller
             $user->update(['firma' => $path]);
 
             // Sincronizar con la tabla de líderes de proceso
-            \App\Models\LiderDeProceso::where('email', $user->email)
-                ->orWhere('numero_documento', $user->numero_documento)
+            \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)
                 ->update(['firma' => $path]);
 
             return response()->json([

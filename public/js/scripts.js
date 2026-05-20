@@ -2,8 +2,11 @@ document.getElementById('btnPdf').addEventListener('click', () => {
 
   const elemento = document.querySelector('.hoja');
   
+  // 1. Quitar el padding superior temporalmente para que no se sume al margen del PDF
+  elemento.style.paddingTop = '0';
+
   const opciones = {
-    margin: [0, 0, 10, 0], // Margen inferior aumentado para dar espacio al número de página
+    margin: [10, 0, 20, 0], // Solo margen superior e inferior para evitar recortes laterales
     filename: 'Agenda_Desplazamiento_SENA.pdf',
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: {
@@ -31,13 +34,35 @@ document.getElementById('btnPdf').addEventListener('click', () => {
     .get('pdf')
     .then(function (pdf) {
       const totalPages = pdf.internal.getNumberOfPages();
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i);
+        
+        pdf.setDrawColor(0);
+        pdf.setLineWidth(0.4);
+
+        // 1. Línea superior de cierre (Solo a partir de la segunda hoja)
+        if (i > 1) {
+          pdf.line(10, 10, pageWidth - 10, 10);
+        }
+
+        // 2. Línea inferior de cierre (Solo si la tabla continúa en otra hoja)
+        if (i < totalPages) {
+          pdf.line(10, pageHeight - 20, pageWidth - 10, pageHeight - 20);
+        }
+
+        // 3. Pie de página
         pdf.setFontSize(10);
         pdf.setTextColor(100);
-        // Escribe 'Página X de Y' en la esquina inferior derecha (aprox a 5mm del borde inferior)
-        pdf.text('Página ' + i + ' de ' + totalPages, pdf.internal.pageSize.getWidth() - 25, pdf.internal.pageSize.getHeight() - 5);
+        // Escribe 'Página X de Y' en la esquina inferior derecha
+        pdf.text('Página ' + i + ' de ' + totalPages, pageWidth - 25, pageHeight - 15);
+        pdf.text('GCCON-F-095', pageWidth - 45, pageHeight - 10);
       }
     })
-    .save();
+    .save().then(() => {
+      // 2. Restaurar el padding visual después de generar el PDF
+      elemento.style.paddingTop = '10mm';
+    });
 });

@@ -6,8 +6,8 @@
             <div class="col-xxl-9 col-xl-10">
 
                 {{-- Encabezado de Página --}}
-                <div class="d-flex align-items-center mb-5">
-                    <div class="bg-success bg-opacity-10 p-3 rounded-4 me-4">
+                <div class="d-flex flex-column flex-sm-row align-items-center mb-5 text-center text-sm-start">
+                    <div class="bg-success bg-opacity-10 p-3 rounded-4 mb-3 mb-sm-0 me-sm-4">
                         <i class="fas fa-file-signature fa-2x text-success"></i>
                     </div>
                     <div>
@@ -117,7 +117,7 @@
                             <div class="form-section card border-0 shadow-sm rounded-4 overflow-hidden">
                                 <div class="card-header bg-white border-0 py-4 px-4 d-flex align-items-center">
                                     <span class="step-badge me-3">1</span>
-                                    <h5 class="fw-bold mb-0 text-dark">Información del Contratista</h5>
+                                    <h5 class="fw-bold mb-0 text-dark">Información del {{ auth()->user()->role === 'funcionario' ? 'Funcionario' : 'Contratista' }}</h5>
                                 </div>
                                 <div class="card-body p-4 pt-0">
                                     <div class="row g-3">
@@ -166,27 +166,29 @@
                             <div class="form-section card border-0 shadow-sm rounded-4 overflow-hidden">
                                 <div class="card-header bg-white border-0 py-4 px-4 d-flex align-items-center">
                                     <span class="step-badge me-3">2</span>
-                                    <h5 class="fw-bold mb-0 text-dark">Detalles del Contrato y Seguimiento</h5>
+                                    <h5 class="fw-bold mb-0 text-dark">{{ auth()->user()->role === 'funcionario' ? 'Seguimiento de la Comisión' : 'Detalles del Contrato y Seguimiento' }}</h5>
                                 </div>
                                 <div class="card-body p-4 pt-0">
                                     <div class="row g-3">
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-semibold text-muted small text-uppercase">Número de Contrato</label>
-                                            <input type="text" class="form-control custom-input bg-light" value="{{ last(explode('.', $user->numero_contrato)) }}" readonly>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-semibold text-muted small text-uppercase">Año</label>
-                                            <input type="text" class="form-control custom-input bg-light" value="{{ $user->anio_contrato }}" readonly>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-semibold text-muted small text-uppercase">Vencimiento</label>
-                                            <input type="text" class="form-control custom-input bg-light" value="{{ $user->fecha_vencimiento }}" readonly>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label fw-semibold text-muted small text-uppercase">Categoría</label>
-                                            <input type="text" class="form-control custom-input bg-light" value="{{ $user->categoria->nombre ?? 'N/A' }}" readonly>
-                                        </div>
-                                        <div class="col-md-6">
+                                        @if(auth()->user()->role !== 'funcionario')
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-semibold text-muted small text-uppercase">Número de Contrato</label>
+                                                <input type="text" class="form-control custom-input bg-light" value="{{ last(explode('.', $user->numero_contrato)) }}" readonly>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-semibold text-muted small text-uppercase">Año</label>
+                                                <input type="text" class="form-control custom-input bg-light" value="{{ $user->anio_contrato }}" readonly>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-semibold text-muted small text-uppercase">Vencimiento</label>
+                                                <input type="text" class="form-control custom-input bg-light" value="{{ $user->fecha_vencimiento }}" readonly>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold text-muted small text-uppercase">Categoría</label>
+                                                <input type="text" class="form-control custom-input bg-light" value="{{ $user->categoria->nombre ?? 'N/A' }}" readonly>
+                                            </div>
+                                        @endif
+                                        <div class="col-md-{{ auth()->user()->role === 'funcionario' ? '12' : '6' }}">
                                             <label class="form-label fw-semibold text-muted small text-uppercase">Fecha Elaboración Agenda</label>
                                             <input type="hidden" name="fecha_elaboracion" value="{{ old('fecha_elaboracion', (isset($agenda) && $agenda->fecha_elaboracion) ? (is_string($agenda->fecha_elaboracion) ? substr($agenda->fecha_elaboracion, 0, 10) : $agenda->fecha_elaboracion->format('Y-m-d')) : date('Y-m-d')) }}">
                                             <input type="date" class="form-control custom-input bg-light" 
@@ -201,10 +203,12 @@
                                             <input type="text" class="form-control custom-input bg-light" value="{{ $user->ordenador->nombre ?? 'Sin asignar' }}" readonly>
                                         </div>
 
-                                        <div class="col-12">
-                                            <label class="form-label fw-semibold text-muted small text-uppercase">Objeto Contractual</label>
-                                            <textarea class="form-control custom-input bg-light" rows="3" readonly>{{ $user->objeto_contractual }}</textarea>
-                                        </div>
+                                        @if(auth()->user()->role !== 'funcionario')
+                                            <div class="col-12">
+                                                <label class="form-label fw-semibold text-muted small text-uppercase">Objeto Contractual</label>
+                                                <textarea class="form-control custom-input bg-light" rows="3" readonly>{{ $user->objeto_contractual }}</textarea>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -776,6 +780,62 @@
             transform: scale(1.02);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
+
+        /* Ajustes para Móvil */
+        @media (max-width: 576px) {
+            .container-fluid {
+                padding: 1.5rem 0.75rem !important;
+            }
+            .card-body {
+                padding: 1.25rem !important;
+            }
+            .card-header {
+                padding: 1rem 1.25rem !important;
+            }
+            .custom-input {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.95rem;
+            }
+            .input-group-text {
+                padding: 0.6rem 0.75rem;
+            }
+            .step-badge {
+                width: 26px;
+                height: 26px;
+                min-width: 26px;
+                font-size: 0.75rem;
+                margin-right: 0.5rem !important;
+            }
+            .card-header h5 {
+                font-size: 0.95rem;
+                line-height: 1.2;
+            }
+            .form-label {
+                font-size: 0.65rem !important;
+                margin-bottom: 0.3rem !important;
+            }
+            /* Clasificación de la Información */
+            .btn-outline-success.p-3 {
+                padding: 1rem !important;
+            }
+            .btn-outline-success i {
+                font-size: 1.1rem;
+                margin-right: 0.75rem !important;
+            }
+            .btn-outline-success .fw-bold {
+                font-size: 0.9rem;
+            }
+            .btn-outline-success .small {
+                font-size: 0.7rem;
+            }
+            /* Espaciado entre secciones */
+            .card {
+                margin-bottom: 1rem !important;
+            }
+            .row.g-4 {
+                --bs-gutter-y: 1.5rem;
+            }
+        }
     </style>
 
     @push('scripts')
@@ -810,7 +870,7 @@
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        window.location.href = "{{ session('back_url_reportar_dia', route('reportar-dia')) }}";
+                        window.location.href = "{{ session('back_url_reportar_dia', route('inicio')) }}";
                     }
                 });
             }

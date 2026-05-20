@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Agenda CTGI - PDF</title>
+  <link rel="icon" href="{{ asset('images/sena/logo-sena-verde.png') }}" type="image/png">
   <style>
     /* Reset y fuentes */
     * {
@@ -24,7 +25,7 @@
       min-height: 279.4mm;
       margin: 20px auto;
       background: #fff;
-      padding: 5mm;
+      padding: 10mm;
       position: relative;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
     }
@@ -152,12 +153,25 @@
   @php
     $cNombre = $agenda->clasificacion->nombre ?? '';
     
-    // Logo logic
-    $logoPath = public_path('images/sena/logoSena.png');
+    // Logo logic - Búsqueda robusta para cPanel/Producción
     $logoBase64 = '';
-    if (file_exists($logoPath)) {
-      $logoData = file_get_contents($logoPath);
-      $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+    $posiblesRutas = [
+        public_path('images/sena/logoSena.png'),
+        base_path('../public_html/images/sena/logoSena.png'),
+        $_SERVER['DOCUMENT_ROOT'] . '/images/sena/logoSena.png'
+    ];
+
+    foreach ($posiblesRutas as $ruta) {
+        if (file_exists($ruta)) {
+            $logoData = file_get_contents($ruta);
+            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+            break;
+        }
+    }
+
+    // Fallback: Si no se encuentra en disco, usar URL (con precaución por CORS en html2pdf)
+    if (empty($logoBase64)) {
+        $logoBase64 = asset('images/sena/logoSena.png');
     }
 
     use Carbon\Carbon;
@@ -279,16 +293,24 @@
 
       <tr>
         <td colspan="11" class="text-bold" style="font-size: 10px;">NOMBRE DEL ORDENADOR DEL GASTO (de la Movilización)</td>
-        <td colspan="13" class="content-value">{{ $agenda->ordenador->nombre ?? '' }}</td>
+        <td colspan="13" class="content-value">
+          {{ $agenda->ordenador->nombre ?? ($agenda->user->ordenador->nombre ?? '') }}
+        </td>
         <td colspan="8" class="text-bold">CARGO</td>
-        <td colspan="16" class="content-value">{{ $agenda->ordenador->cargo ?? '' }}</td>
+        <td colspan="16" class="content-value">
+          {{ $agenda->ordenador->cargo ?? ($agenda->user->ordenador->cargo ?? 'ORDENADOR DEL GASTO') }}
+        </td>
       </tr>
 
       <tr>
         <td colspan="11" class="text-bold" style="font-size: 10px;">NOMBRE DEL SUPERVISOR(A) DEL CONTRATO</td>
-        <td colspan="13" class="content-value">{{ $agenda->supervisor->nombre ?? '' }}</td>
+        <td colspan="13" class="content-value">
+          {{ $agenda->supervisor->nombre ?? ($agenda->user->supervisor->nombre ?? '') }}
+        </td>
         <td colspan="8" class="text-bold">CARGO</td>
-        <td colspan="16" class="content-value">{{ $agenda->supervisor->cargo ?? '' }}</td>
+        <td colspan="16" class="content-value">
+          {{ $agenda->supervisor->cargo ?? ($agenda->user->supervisor->cargo ?? 'SUPERVISOR(A) DEL CONTRATO') }}
+        </td>
       </tr>
 
       <!-- SECCION: INFORMACION DEL DESPLAZAMIENTO -->
@@ -466,12 +488,21 @@
       @php
         $estado = $agenda->estado->nombre ?? '';
         $pathC = $agenda->firma_contratista_path ?? ($agenda->user->firma ?? null);
-        $pathS = $agenda->firma_supervisor_path ?? ($agenda->supervisor->firma ?? null);
-        $pathO = $agenda->firma_ordenador_path ?? ($agenda->ordenador->nombre ? ($agenda->ordenador->firma ?? null) : null);
+        
+        // Lógica de Supervisor: Si la agenda no tiene, buscar el del usuario
+        $supervisorObj = $agenda->supervisor ?? $agenda->user->supervisor;
+        $pathS = $agenda->firma_supervisor_path ?? ($supervisorObj->firma ?? null);
+        
+        // Lógica de Ordenador: Si la agenda no tiene, buscar el del usuario
+        $ordenadorObj = $agenda->ordenador ?? $agenda->user->ordenador;
+        $pathO = $agenda->firma_ordenador_path ?? ($ordenadorObj->firma ?? null);
+
+        $isSupervisorAprobado = in_array($estado, ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA']);
+        $isOrdenadorAprobado = ($estado === 'APROBADA');
 
         $fC = $getFirmaBase64($pathC);
-        $fS = (in_array($estado, ['APROBADA_SUPERVISOR', 'APROBADA_VIATICOS', 'APROBADA'])) ? $getFirmaBase64($pathS) : '';
-        $fO = (in_array($estado, ['APROBADA'])) ? $getFirmaBase64($pathO) : '';
+        $fS = $isSupervisorAprobado ? $getFirmaBase64($pathS) : '';
+        $fO = $isOrdenadorAprobado ? $getFirmaBase64($pathO) : '';
       @endphp
 
       <tr>
@@ -492,23 +523,27 @@
         </td>
       </tr>
       <tr>
-        <td colspan="16" style="font-size: 9px; text-align: left; border: 1px solid black; padding: 2px; height: 32px; vertical-align: top;">
+        <td colspan="16" style="font-size: 9px; text-align: left; border: 1.5px solid black; padding: 2px; height: 32px; vertical-align: top;">
           <div class="text-bold">Nombres y Apellidos:</div>
-          <div style="margin-top: 1px;">{{ strtoupper($agenda->ordenador->nombre ?? '') }}</div>
+          <div style="margin-top: 1px;">
+            {{ strtoupper($ordenadorObj->nombre ?? 'NO ASIGNADO') }}
+          </div>
         </td>
-        <td colspan="16" style="font-size: 9px; text-align: left; border: 1px solid black; padding: 2px; vertical-align: top;">
+        <td colspan="16" style="font-size: 9px; text-align: left; border: 1.5px solid black; padding: 2px; vertical-align: top;">
           <div class="text-bold">Nombres y Apellidos:</div>
-          <div style="margin-top: 1px;">{{ strtoupper($agenda->supervisor->nombre ?? '') }}</div>
+          <div style="margin-top: 1px;">
+            {{ strtoupper($supervisorObj->nombre ?? 'NO ASIGNADO') }}
+          </div>
         </td>
       </tr>
       <tr>
-        <td colspan="16" style="font-size: 9px; height: 32px; vertical-align: top; text-align: left; border: 1px solid black; padding: 2px;">
+        <td colspan="16" style="font-size: 9px; height: 32px; vertical-align: top; text-align: left; border: 1.5px solid black; padding: 2px;">
           <div class="text-bold">Cargo:</div>
-          <div style="margin-top: 1px;">{{ strtoupper($agenda->ordenador->cargo ?? '') }}</div>
+          <div style="margin-top: 1px;">{{ strtoupper($ordenadorObj->cargo ?? 'ORDENADOR DEL GASTO') }}</div>
         </td>
-        <td colspan="16" style="font-size: 9px; height: 32px; vertical-align: top; text-align: left; border: 1px solid black; padding: 2px;">
+        <td colspan="16" style="font-size: 9px; height: 32px; vertical-align: top; text-align: left; border: 1.5px solid black; padding: 2px;">
           <div class="text-bold">Cargo:</div>
-          <div style="margin-top: 1px;">{{ strtoupper($agenda->supervisor->cargo ?? '') }}</div>
+          <div style="margin-top: 1px;">{{ strtoupper($supervisorObj->cargo ?? 'SUPERVISOR(A) DEL CONTRATO') }}</div>
         </td>
         <td colspan="16" style="font-size: 9px; height: 32px; vertical-align: top; text-align: left; border: 1px solid black; padding: 2px;">
           <div class="text-bold">Nombres y Apellidos:</div>

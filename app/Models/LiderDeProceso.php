@@ -13,7 +13,6 @@ class LiderDeProceso extends Model
 
     protected $fillable = [
         'nombre',
-        'email',
         'tipo_documento',
         'numero_documento',
         'cargo',

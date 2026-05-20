@@ -65,6 +65,12 @@
                                             data-bs-target="#modalFirma{{ $item->id }}">
                                         <i class="fas fa-pen-nib me-1"></i> Firmar
                                     </button>
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm fw-bold"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#modalDevolver{{ $item->id }}">
+                                        <i class="fas fa-undo me-1"></i> Devolver
+                                    </button>
                                 @endif
 
                                 <a href="{{ route('agenda.pdf', $item->id) }}" 
@@ -101,6 +107,37 @@
                                                     <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
                                                     <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm text-white">
                                                         <i class="fas fa-check-circle me-1"></i> Confirmar y Firmar
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- MODAL DE DEVOLUCIÓN --}}
+                                <div class="modal fade" id="modalDevolver{{ $item->id }}" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content border-0 shadow rounded-4 text-start">
+                                            <form action="{{ route('ordenador_gasto.devolver', $item->id) }}" method="POST">
+                                                @csrf
+                                                <div class="modal-header border-0 bg-danger bg-opacity-10 rounded-top-4 py-3">
+                                                    <h5 class="modal-title fw-bold text-danger">Devolver Agenda para Corrección</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body p-4">
+                                                    <p class="text-muted small mb-3">
+                                                        Indique el motivo por el cual devuelve esta agenda a <strong>{{ $item->user->name ?? 'N/A' }}</strong>.
+                                                    </p>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-bold small text-uppercase">Observaciones / Motivo</label>
+                                                        <textarea name="observaciones" class="form-control rounded-3" rows="4" 
+                                                                  placeholder="Ej: La ruta no coincide con el objetivo de la comisión..." required></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer border-0 p-4 pt-0">
+                                                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                                                    <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm">
+                                                        <i class="fas fa-undo me-1"></i> Confirmar Devolución
                                                     </button>
                                                 </div>
                                             </form>

@@ -21,9 +21,9 @@ class UserController extends Controller
 
         if ($search) {
             $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%$search%")
-                  ->orWhere('numero_documento', 'like', "%$search%")
-                  ->orWhere('email', 'like', "%$search%");
+                $searchEscaped = str_replace(['%', '_'], ['\%', '\_'], $search);
+                $q->where('name', 'like', "%$searchEscaped%")
+                  ->orWhere('numero_documento', 'like', "%$searchEscaped%");
             });
         }
 
@@ -41,27 +41,29 @@ class UserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
             'numero_documento' => 'required|string|unique:users,numero_documento',
             'tipo_documento' => 'required|string|max:20',
             'salario_honorarios' => 'nullable|numeric|min:0',
             'numero_cuenta_tipo' => 'nullable|string|max:100',
-            'role' => 'required|in:contratista,administrador,viaticos,supervisor_contrato,ordenador_gasto',
-            'categoria_personal_id' => 'required|exists:categorias_personal,id',
-            'numero_contrato' => 'required|string|max:100',
-            'anio_contrato' => 'required|numeric|digits:4',
-            'fecha_vencimiento' => 'required|date',
-            'objeto_contractual' => 'required|string',
+            'role' => 'required|in:contratista,administrador,viaticos,supervisor_contrato,ordenador_gasto,funcionario',
+            'categoria_personal_id' => 'required_unless:role,funcionario|nullable|exists:categorias_personal,id',
+            'numero_contrato' => 'required_unless:role,funcionario|nullable|string|max:100',
+            'anio_contrato' => 'required_unless:role,funcionario|nullable|numeric|digits:4',
+            'fecha_vencimiento' => 'required_unless:role,funcionario|nullable|date',
+            'objeto_contractual' => 'required_unless:role,funcionario|nullable|string',
+            'cargo' => 'nullable|string|max:150',
+            'password' => 'nullable|string',
         ]);
+
+        $password = $request->input('password') ?: ($request->numero_documento . random_int(10, 99));
 
         User::create([
             'name' => $request->name,
-            'email' => $request->email,
             'tipo_documento' => $request->tipo_documento,
             'numero_documento' => $request->numero_documento,
             'salario_honorarios' => $request->salario_honorarios,
             'numero_cuenta_tipo' => $request->numero_cuenta_tipo,
-            'password' => Hash::make($request->numero_documento),
+            'password' => Hash::make($password),
             'role' => $request->role,
             'categoria_personal_id' => $request->categoria_personal_id,
             'supervisor_id' => $request->supervisor_id,
@@ -70,6 +72,7 @@ class UserController extends Controller
             'anio_contrato' => $request->anio_contrato,
             'fecha_vencimiento' => $request->fecha_vencimiento,
             'objeto_contractual' => $request->objeto_contractual,
+            'cargo' => $request->cargo,
         ]);
 
         return back()->with('success', 'Usuario creado correctamente.');
@@ -79,17 +82,17 @@ class UserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $usuario->id,
             'numero_documento' => 'required|string|unique:users,numero_documento,' . $usuario->id,
             'tipo_documento' => 'required|string|max:20',
             'salario_honorarios' => 'nullable|numeric|min:0',
             'numero_cuenta_tipo' => 'nullable|string|max:100',
-            'role' => 'required|in:contratista,administrador,viaticos,supervisor_contrato,ordenador_gasto',
-            'categoria_personal_id' => 'required|exists:categorias_personal,id',
-            'numero_contrato' => 'required|string|max:100',
-            'anio_contrato' => 'required|numeric|digits:4',
-            'fecha_vencimiento' => 'required|date',
-            'objeto_contractual' => 'required|string',
+            'role' => 'required|in:contratista,administrador,viaticos,supervisor_contrato,ordenador_gasto,funcionario',
+            'categoria_personal_id' => 'required_unless:role,funcionario|nullable|exists:categorias_personal,id',
+            'numero_contrato' => 'required_unless:role,funcionario|nullable|string|max:100',
+            'anio_contrato' => 'required_unless:role,funcionario|nullable|numeric|digits:4',
+            'fecha_vencimiento' => 'required_unless:role,funcionario|nullable|date',
+            'objeto_contractual' => 'required_unless:role,funcionario|nullable|string',
+            'cargo' => 'nullable|string|max:150',
         ]);
 
         // Actualizar usuario. El UserObserver se encargará de sincronizar con 'lideres_de_proceso'.

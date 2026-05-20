@@ -13,7 +13,9 @@ class FormularioController extends Controller
     {
         $agenda = null;
         if ($id) {
-            $agenda = AgendaDesplazamiento::with(['actividades', 'obligaciones', 'user', 'estado'])->findOrFail($id);
+            $agenda = AgendaDesplazamiento::with(['actividades', 'obligaciones', 'user', 'estado'])
+                ->where('user_id', auth()->id())
+                ->findOrFail($id);
         }
 
         $user = auth()->user()->load(['categoria.obligaciones', 'supervisor', 'ordenador']);
@@ -22,6 +24,10 @@ class FormularioController extends Controller
         $clasificaciones = \App\Models\ClasificacionInformacion::all();
         $estados = \App\Models\EstadoAgenda::all();
 
+        if ($user->role === 'funcionario') {
+            return view('funcionario.formulario', compact('agenda', 'user', 'departamentos', 'clasificaciones', 'estados'));
+        }
+
         return view('formulario', compact('agenda', 'user', 'departamentos', 'clasificaciones', 'estados'));
     }
 
@@ -29,29 +35,37 @@ class FormularioController extends Controller
     {
         $user = auth()->user();
 
-        $rules = [
-            'fecha_elaboracion' => 'required|date',
-            'clasificacion_id' => 'required|exists:clasificacion_informacion,id',
-            
-            'regional' => 'required|string|max:150',
-            'centro' => 'required|string|max:150',
-
-            'destinos' => 'required|array|min:1',
-            'destinos.*.departamento_id' => 'required|exists:departamentos,id',
-            'destinos.*.municipio_id' => 'nullable|exists:municipios,id',
-            'destinos.*.vereda' => 'nullable|string|max:120',
-
-            'entidad_empresa' => 'required|string|max:120',
-            'contacto' => 'required|string|max:120',
-
-            'fecha_inicio' => 'required|date',
-            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
-
-            'objetivo_desplazamiento' => 'required|string|max:160',
-
-            'obligaciones' => 'required|array|min:1',
-            'obligaciones.*' => 'required|exists:obligaciones_contrato,id',
-        ];
+        if ($user->role === 'funcionario') {
+            $rules = [
+                'fecha_elaboracion' => 'required|date',
+                'regional' => 'required|string|max:150',
+                'centro_formacion' => 'required|string|max:150',
+                'destinos' => 'required|array|min:1',
+                'destinos.*.departamento_id' => 'required|exists:departamentos,id',
+                'destinos.*.municipio_id' => 'nullable|exists:municipios,id',
+                'fecha_inicio' => 'required|date',
+                'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+                'objetivo_desplazamiento' => 'required|string|max:1000',
+            ];
+        } else {
+            $rules = [
+                'fecha_elaboracion' => 'required|date',
+                'clasificacion_id' => 'required|exists:clasificacion_informacion,id',
+                'regional' => 'required|string|max:150',
+                'centro' => 'required|string|max:150',
+                'destinos' => 'required|array|min:1',
+                'destinos.*.departamento_id' => 'required|exists:departamentos,id',
+                'destinos.*.municipio_id' => 'nullable|exists:municipios,id',
+                'destinos.*.vereda' => 'nullable|string|max:120',
+                'entidad_empresa' => 'required|string|max:120',
+                'contacto' => 'required|string|max:120',
+                'fecha_inicio' => 'required|date',
+                'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+                'objetivo_desplazamiento' => 'required|string|max:1000',
+                'obligaciones' => 'required|array|min:1',
+                'obligaciones.*' => 'required|exists:obligaciones_contrato,id',
+            ];
+        }
 
         // Solo exigir que la fecha sea futura si es una agenda nueva
         if (!$request->filled('agenda_id')) {
@@ -70,14 +84,14 @@ class FormularioController extends Controller
             $nombreDestino = $muni ? $muni->nombre : $depto->nombre;
 
             $rutaItems[] = $nombreDestino;
-            if (!empty($dest['vereda'])) {
+            if (!empty($dest['vereda'] ?? null)) {
                 $rutaItems[] = $dest['vereda'];
             }
 
             $destinosData[] = [
                 'departamento_id' => $dest['departamento_id'],
                 'municipio_id' => $dest['municipio_id'],
-                'vereda' => $dest['vereda'],
+                'vereda' => $dest['vereda'] ?? null,
                 'nombre' => $nombreDestino
             ];
         }
@@ -93,15 +107,15 @@ class FormularioController extends Controller
 
         $agendaData = [
             'user_id' => $user->id,
-            'clasificacion_id' => $validatedData['clasificacion_id'],
+            'clasificacion_id' => $validatedData['clasificacion_id'] ?? 1, // Default para funcionarios
             'estado_id' => $estadoInicial->id,
             'fecha_elaboracion' => $validatedData['fecha_elaboracion'],
             'ruta' => $ruta,
             'regional' => $validatedData['regional'],
-            'centro' => $validatedData['centro'],
+            'centro' => $validatedData['centro'] ?? $validatedData['centro_formacion'], // Mapeo dinámico
             'destinos' => $destinosData,
-            'entidad_empresa' => $validatedData['entidad_empresa'],
-            'contacto' => $validatedData['contacto'],
+            'entidad_empresa' => $validatedData['entidad_empresa'] ?? 'N/A',
+            'contacto' => $validatedData['contacto'] ?? 'N/A',
             'objetivo_desplazamiento' => $validatedData['objetivo_desplazamiento'],
             'fecha_inicio' => $validatedData['fecha_inicio'],
             'fecha_fin' => $validatedData['fecha_fin'],
@@ -110,7 +124,7 @@ class FormularioController extends Controller
         ];
 
         $agenda = $request->filled('agenda_id')
-            ? AgendaDesplazamiento::findOrFail($request->agenda_id)
+            ? AgendaDesplazamiento::where('user_id', $user->id)->findOrFail($request->agenda_id)
             : new AgendaDesplazamiento();
 
         // Si es una actualización, conservamos el estado si no es borrador o lo reseteamos si es corrección
@@ -121,11 +135,13 @@ class FormularioController extends Controller
         $agenda->fill($agendaData);
         $agenda->save();
 
-        // Sincronizar Obligaciones
-        $agenda->obligaciones()->sync($validatedData['obligaciones']);
+        // Sincronizar Obligaciones (Solo si aplican)
+        if (isset($validatedData['obligaciones'])) {
+            $agenda->obligaciones()->sync($validatedData['obligaciones']);
+        }
 
         if ($request->filled('agenda_id')) {
-            return redirect()->to(session('back_url_reportar_dia', route('reportar-dia')))
+            return redirect()->to(session('back_url_reportar_dia', route('inicio')))
                 ->with('success', 'La agenda se corrigió con éxito.');
         }
 
@@ -161,7 +177,9 @@ class FormularioController extends Controller
         }
         // -----------------------------------------
 
-        return view('agenda.pdf', compact('agenda'));
+        $view = ($agenda->user && $agenda->user->role === 'funcionario') ? 'funcionario.pdf' : 'agenda.pdf';
+
+        return view($view, compact('agenda'));
     }
 
     public function enviar($id)
@@ -175,7 +193,7 @@ class FormularioController extends Controller
         $estadoEnviada = \App\Models\EstadoAgenda::where('nombre', 'ENVIADA')->first();
         $agenda->update(['estado_id' => $estadoEnviada->id]);
 
-        return redirect()->route('reportar-dia')->with('success', 'Agenda enviada a coordinación para revisión.');
+        return redirect()->route('inicio')->with('success', 'Agenda enviada a coordinación para revisión.');
     }
 
 }

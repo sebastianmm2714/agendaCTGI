@@ -13,7 +13,6 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
-        'email',
         'password',
         'tipo_documento',
         'numero_documento',
@@ -28,6 +27,7 @@ class User extends Authenticatable
         'supervisor_id',
         'ordenador_id',
         'role',
+        'cargo',
     ];
 
     protected $hidden = [
@@ -36,7 +36,6 @@ class User extends Authenticatable
     ];
 
     protected $casts = [
-        'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'salario_honorarios' => 'decimal:2',
     ];
