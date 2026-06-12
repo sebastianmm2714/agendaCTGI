@@ -187,7 +187,7 @@ class ReportesController extends Controller
 
         $isAuthorized = ($user->role === 'administrador') ||
                         ($user->role === 'viaticos' && $agenda->estado->nombre === 'BORRADOR') ||
-                        ($funcionarioId && ($agenda->supervisor_id === $funcionarioId));
+                        ($funcionarioId && ($agenda->supervisor_id === $funcionarioId || $agenda->ordenador_id === $funcionarioId));
 
         if (!$isAuthorized) {
             abort(403, 'No tiene permisos para eliminar esta agenda.');
@@ -198,11 +198,28 @@ class ReportesController extends Controller
         $agenda->actividades()->delete();
         $agenda->obligaciones()->detach();
         
+        // Eliminar la legalización asociada si existe
+        if ($agenda->legalizacion) {
+            $agenda->legalizacion->delete();
+        }
+
+        // Eliminar PDFs finales si existen (soportando formato antiguo y nuevo con cédula)
+        $doc = $agenda->user->numero_documento ?? '';
+        $pathsToDelete = [
+            storage_path('app/final_pdfs/agenda_' . $agenda->id . '.pdf'),
+            storage_path('app/final_pdfs/agenda_' . $agenda->id . '_' . $doc . '.pdf'),
+            storage_path('app/final_pdfs/legalizacion_' . $agenda->id . '.pdf'),
+            storage_path('app/final_pdfs/legalizacion_' . $agenda->id . '_' . $doc . '.pdf'),
+        ];
+        foreach ($pathsToDelete as $p) {
+            if (file_exists($p)) {
+                @unlink($p);
+            }
+        }
+        
         // Eliminar la agenda
         $agenda->delete();
 
-        $redirect = $user->role === 'viaticos' ? route('inicio', ['ver' => 'borradores']) : route('reportes');
-
-        return redirect($redirect)->with('success', 'Agenda eliminada permanentemente del sistema.');
+        return back()->with('success', 'Agenda eliminada permanentemente del sistema.');
     }
 }

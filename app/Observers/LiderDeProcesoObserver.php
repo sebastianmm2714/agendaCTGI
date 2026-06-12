@@ -22,10 +22,11 @@ class LiderDeProcesoObserver
         if ($user) {
             // Mapear tipo de líder a rol de sistema
             $role = match($liderDeProceso->tipo) {
-                'SUPERVISOR' => 'supervisor_contrato',
-                'ORDENADOR' => 'ordenador_gasto',
-                'VIATICOS'   => 'viaticos',
-                default      => $user->role // Mantener el anterior si no es un tipo estándar
+                'SUPERVISOR'   => 'supervisor_contrato',
+                'ORDENADOR'    => 'ordenador_gasto',
+                'VIATICOS'     => 'viaticos',
+                'LEGALIZACION' => 'legalizacion',
+                default        => $user->role // Mantener el anterior si no es un tipo estándar
             };
 
             // Actualizar sin disparar eventos de User para evitar bucle infinito

@@ -70,10 +70,11 @@
                             <td class="text-center">
                                 @php
                                     $color = match($fun->tipo) {
-                                        'SUPERVISOR' => 'success',
-                                        'ORDENADOR' => 'primary',
-                                        'VIATICOS' => 'info',
-                                        default => 'secondary'
+                                        'SUPERVISOR'   => 'success',
+                                        'ORDENADOR'    => 'primary',
+                                        'VIATICOS'     => 'info',
+                                        'LEGALIZACION' => 'warning',
+                                        default        => 'secondary'
                                     };
                                 @endphp
                                 <span class="badge bg-{{ $color }} bg-opacity-10 text-{{ $color }} border border-{{ $color }} px-3 py-2 rounded-pill fw-bold">
@@ -88,6 +89,12 @@
                                 @endif
                             </td>
                             <td class="pe-4 text-end">
+                                <a href="{{ route('admin.lideres_de_proceso.preview_pdf') }}" 
+                                   target="_blank"
+                                   class="btn btn-link text-warning p-1" 
+                                   title="Vista Previa Formato Legalización">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
                                 <button class="btn btn-link text-primary p-1" data-bs-toggle="modal" data-bs-target="#modalEditarLider{{ $fun->id }}">
                                     <i class="fas fa-edit"></i>
                                 </button>
@@ -137,9 +144,10 @@
                                             <div class="mb-3">
                                                 <label class="form-label fw-bold">Tipo de Líder de Proceso</label>
                                                 <select name="tipo" class="form-select rounded-3" required>
-                                                    <option value="SUPERVISOR" {{ $fun->tipo == 'SUPERVISOR' ? 'selected' : '' }}>SUPERVISOR </option>
-                                                    <option value="ORDENADOR" {{ $fun->tipo == 'ORDENADOR' ? 'selected' : '' }}>ORDENADOR DE GASTO </option>
+                                                    <option value="SUPERVISOR" {{ $fun->tipo == 'SUPERVISOR' ? 'selected' : '' }}>SUPERVISOR</option>
+                                                    <option value="ORDENADOR" {{ $fun->tipo == 'ORDENADOR' ? 'selected' : '' }}>ORDENADOR DE GASTO</option>
                                                     <option value="VIATICOS" {{ $fun->tipo == 'VIATICOS' ? 'selected' : '' }}>VIÁTICOS</option>
+                                                    <option value="LEGALIZACION" {{ $fun->tipo == 'LEGALIZACION' ? 'selected' : '' }}>LEGALIZACIÓN</option>
                                                 </select>
                                             </div>
                                             <div class="mb-0">
@@ -281,6 +289,7 @@
                             <option value="SUPERVISOR" selected>SUPERVISOR (Coord./Apoyo)</option>
                             <option value="ORDENADOR">ORDENADOR DE GASTO (Subdirector)</option>
                             <option value="VIATICOS">TESORERÍA / VIÁTICOS</option>
+                            <option value="LEGALIZACION">LEGALIZACIÓN</option>
                         </select>
                     </div>
                     <div class="mb-0">

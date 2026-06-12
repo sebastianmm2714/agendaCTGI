@@ -2,8 +2,9 @@ document.getElementById('btnPdf').addEventListener('click', () => {
 
   const elemento = document.querySelector('.hoja');
   
-  // 1. Quitar el padding superior temporalmente para que no se sume al margen del PDF
+  // 1. Quitar el padding superior y min-height temporalmente
   elemento.style.paddingTop = '0';
+  elemento.style.minHeight = 'unset';
 
   const opciones = {
     margin: [10, 0, 20, 0], // Solo margen superior e inferior para evitar recortes laterales
@@ -62,7 +63,8 @@ document.getElementById('btnPdf').addEventListener('click', () => {
       }
     })
     .save().then(() => {
-      // 2. Restaurar el padding visual después de generar el PDF
+      // 2. Restaurar el padding visual y min-height después de generar el PDF
       elemento.style.paddingTop = '10mm';
+      elemento.style.minHeight = '';
     });
 });

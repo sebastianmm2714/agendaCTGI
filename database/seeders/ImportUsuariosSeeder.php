@@ -52,6 +52,7 @@ class ImportUsuariosSeeder extends Seeder
                         'SUPERVISOR' => 'supervisor_contrato',
                         'ORDENADOR' => 'ordenador_gasto',
                         'VIATICOS' => 'viaticos',
+                        'LEGALIZACION' => 'legalizacion',
                         default => 'contratista',
                     },
                 ]

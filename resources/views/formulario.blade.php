@@ -146,17 +146,12 @@
                                              <input type="text" name="numero_documento" class="form-control custom-input bg-light"
                                                 value="{{ old('numero_documento', auth()->user()->numero_documento) }}" placeholder="Ej: 1018..." readonly required>
                                         </div>
-                                        <div class="col-md-12">
-                                             @php
-                                                $userRol = auth()->user()->role;
-                                                $cargoValue = ($userRol === 'contratista' || $userRol === 'supervisor_contrato') ? 'Contratista' : 'Servidor_Publico';
-                                                $cargoLabel = $cargoValue === 'Contratista' ? 'Contratista (Planta)' : 'Servidor Público';
-                                             @endphp
-                                             {{-- Campo visual de solo lectura --}}
-                                             <input type="text" id="cargo" class="form-select custom-input bg-light" value="{{ $cargoLabel }}" readonly>
-                                             {{-- Input hidden para enviar el valor real al servidor --}}
-                                             <input type="hidden" name="cargo" id="cargo_hidden" value="{{ $cargoValue }}">
-                                        </div>
+                                         @php
+                                            $userRol = auth()->user()->role;
+                                            $cargoValue = ($userRol === 'contratista' || $userRol === 'supervisor_contrato') ? 'Contratista' : 'Servidor_Publico';
+                                         @endphp
+                                         {{-- Input hidden para enviar el valor real al servidor --}}
+                                         <input type="hidden" name="cargo" id="cargo_hidden" value="{{ $cargoValue }}">
                                     </div>
                                 </div>
                             </div>

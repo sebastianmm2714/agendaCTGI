@@ -402,7 +402,7 @@
                 <tbody>
                     <!-- ENCABEZADO DÍA -->
                     <tr>
-                        <td colspan="48" style="padding: 15px 20px 5px 20px; border-top: none; border-bottom: none;">
+                        <td colspan="48" style="padding: 15px 20px 5px 20px; border-top: none; border-bottom: none; border-left: 1.5px solid #000; border-right: 1.5px solid #000;">
                             <div style="font-weight: bold; font-size: 14px; text-decoration: underline;">
                                 Día {{ $index + 1 }}: {{ \Carbon\Carbon::parse($act->fecha)->format('d/m/Y') }}
                             </div>
@@ -411,7 +411,7 @@
 
                     @if($act->ruta_ida || (count(is_array($act->transporte_ida) ? $act->transporte_ida : []) > 0))
                     <tr>
-                        <td colspan="48" style="padding: 0 20px 5px 20px; border-top: none; border-bottom: none;">
+                        <td colspan="48" style="padding: 10px 20px 5px 20px; border-top: none; border-bottom: none; border-left: 1.5px solid #000; border-right: 1.5px solid #000;">
                             @if($act->ruta_ida)
                             <div style="margin-bottom: 4px; font-size: 13px;">
                                 <span style="font-weight: bold;">Desplazamientos ruta de ida:</span> {{ $act->ruta_ida }}
@@ -432,7 +432,7 @@
                     @endif
 
                     <tr>
-                        <td colspan="48" style="padding: 5px 20px 0px 20px; border-top: none; border-bottom: none;">
+                        <td colspan="48" style="padding: 10px 20px 0px 20px; border-top: none; border-bottom: none; border-left: 1.5px solid #000; border-right: 1.5px solid #000;">
                             <div style="font-weight: bold; font-size: 13px;">
                                 Actividades a ejecutar:
                             </div>
@@ -442,7 +442,7 @@
                     @php $items = is_array($act->actividad) ? $act->actividad : []; @endphp
                     @foreach($items as $item)
                     <tr>
-                        <td colspan="48" style="padding: 2px 20px; border-top: none; border-bottom: none;">
+                        <td colspan="48" style="padding: 8px 20px; border-top: none; border-bottom: none; border-left: 1.5px solid #000; border-right: 1.5px solid #000;">
                             <div style="display: flex; line-height: 1.3; width: 100%;">
                                 <div style="width: 70px; font-weight: bold; font-size: 13px; flex-shrink: 0;">
                                     {{ $item['hora'] ?? '' }}
@@ -460,7 +460,7 @@
                     @endphp
 
                     <tr>
-                        <td colspan="48" style="padding: 5px 20px 15px 20px; border-top: none; {{ $esUltimoDia ? 'border-bottom: 1.5px solid #000;' : 'border-bottom: none;' }}">
+                        <td colspan="48" style="padding: 10px 20px 15px 20px; border-top: none; border-left: 1.5px solid #000; border-right: 1.5px solid #000; {{ $esUltimoDia ? 'border-bottom: 1.5px solid #000;' : 'border-bottom: none;' }}">
                             @if($act->ruta_regreso)
                             <div style="margin-top: 10px; padding-top: 0;">
                                 <div style="font-size: 13px;">
@@ -545,13 +545,14 @@
             // ya que lo dibujaremos manualmente en todas las páginas para mantener consistencia
             if (headerTabla) headerTabla.style.display = 'none';
             element.style.paddingTop = '0';
+            element.style.minHeight = 'unset';
             
             const opt = {
                 margin: [40, 0, 20, 0], // Margen superior amplio (40mm) para el encabezado recurrente
                 filename: 'Comision_Funcionario_{{ $agenda->id }}.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
+                image: { type: 'jpeg', quality: 0.80 },
                 html2canvas: { 
-                    scale: 2, 
+                    scale: 1.5, 
                     useCORS: true, 
                     letterRendering: true,
                     scrollY: 0,
@@ -621,15 +622,188 @@
                     pdf.setFontSize(10);
                     pdf.setTextColor(0);
                     pdf.text(i.toString(), pageWidth - 15, pageHeight - 15);
-                    pdf.text('GTH-F-188 V01', pageWidth - 45, pageHeight - 10);
+                    pdf.text('GTH-F-064 V05', pageWidth - 45, pageHeight - 10);
                 }
             }).save().then(() => {
                 // Restaurar vista original
                 if (headerTabla) headerTabla.style.display = 'table';
                 element.style.paddingTop = '10mm';
+                element.style.minHeight = '';
             });
         }
     </script>
+
+    @if(isset($isFinalState) && $isFinalState)
+    <!-- Capa de carga para guardar el PDF firmado -->
+    <div id="loading-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif;">
+        <div style="border: 6px solid #f3f3f3; border-top: 6px solid #39A900; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 20px; font-weight: bold; color: #333; font-size: 16px;">Generando y guardando documento firmado...</p>
+        <p style="color: #666; font-size: 14px;">Este proceso se realiza solo una vez.</p>
+    </div>
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            // Asegurar que las firmas e imágenes estén completamente cargadas antes de proceder
+            const element = document.getElementById('hoja-agenda');
+            const images = element.querySelectorAll('img');
+            const promises = Array.from(images).map(img => {
+                if (img.complete) return Promise.resolve();
+                return new Promise(resolve => {
+                    img.onload = resolve;
+                    img.onerror = resolve;
+                });
+            });
+
+            Promise.all(promises).then(async () => {
+                try {
+                    // Desplazar al tope para evitar bug de scrollY
+                    window.scrollTo(0, 0);
+
+                    // Guardar viewport original para restaurar después en celulares
+                    let viewport = document.querySelector('meta[name="viewport"]');
+                    window.pdfOriginalViewport = '';
+                    window.pdfCreatedViewport = false;
+                    
+                    if (!viewport) {
+                        viewport = document.createElement('meta');
+                        viewport.name = 'viewport';
+                        document.head.appendChild(viewport);
+                        window.pdfCreatedViewport = true;
+                    } else {
+                        window.pdfOriginalViewport = viewport.getAttribute('content');
+                    }
+                    viewport.setAttribute('content', 'width=816, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+
+                    // Forzar ancho rígido de 816px para emular vista desktop en móviles
+                    const styleTag = document.createElement('style');
+                    styleTag.id = 'pdf-forced-styles';
+                    styleTag.innerHTML = `
+                        html, body {
+                            width: 816px !important;
+                            min-width: 816px !important;
+                            overflow: visible !important;
+                        }
+                        .hoja {
+                            width: 816px !important;
+                            min-width: 816px !important;
+                            margin: 0 auto !important;
+                            padding: 10mm !important;
+                            min-height: unset !important;
+                        }
+                    `;
+                    document.head.appendChild(styleTag);
+
+                    const headerTabla = document.getElementById('header-tabla');
+                    if (headerTabla) headerTabla.style.display = 'none';
+                    element.style.paddingTop = '0';
+                    
+                    const opt = {
+                        margin: [40, 0, 20, 0],
+                        filename: 'Comision_Funcionario_{{ $agenda->id }}.pdf',
+                        image: { type: 'jpeg', quality: 0.80 },
+                        html2canvas: { 
+                            scale: 1.5, 
+                            useCORS: true, 
+                            letterRendering: true,
+                            scrollY: 0, scrollX: 0, x: 0, y: 0,
+                            windowWidth: 816
+                        },
+                        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+                        pagebreak: { 
+                            mode: ['css', 'legacy'], 
+                            avoid: ['tr', '.no-break'] 
+                        }
+                    };
+                    
+                    // Esperar 500ms a que el navegador termine el reflow del diseño a 816px antes de generar el PDF
+                    setTimeout(async () => {
+                        try {
+                            const pdf = await html2pdf().set(opt).from(element).toPdf().get('pdf');
+                            const totalPages = pdf.internal.getNumberOfPages();
+                            const pageWidth = pdf.internal.pageSize.getWidth();
+                            const pageHeight = pdf.internal.pageSize.getHeight();
+                            
+                            for (let i = 1; i <= totalPages; i++) {
+                                pdf.setPage(i);
+                                
+                                const marginX = 10;
+                                const marginY = 10;
+                                const headerWidth = pageWidth - 20;
+                                const headerHeight = 25;
+                                const separatorX = marginX + (headerWidth * (10/48));
+
+                                pdf.setDrawColor(0);
+                                pdf.setLineWidth(0.4);
+                                pdf.rect(marginX, marginY, headerWidth, headerHeight);
+                                pdf.line(separatorX, marginY, separatorX, marginY + headerHeight);
+
+                                if (window.logoBase64) {
+                                    pdf.addImage(window.logoBase64, 'PNG', marginX + 2, marginY + 2, (separatorX - marginX) - 4, headerHeight - 4);
+                                }
+
+                                pdf.setFont("helvetica", "bold");
+                                pdf.setFontSize(14);
+                                const textX = separatorX + (headerWidth - (separatorX - marginX)) / 2;
+                                pdf.text("AGENDA DE LABORES PARA COMISIÓN SERVIDORES", textX, marginY + 10, { align: "center" });
+                                pdf.text("PÚBLICOS", textX, marginY + 17, { align: "center" });
+
+                                if (i > 1) {
+                                    pdf.line(10, 40, pageWidth - 10, 40);
+                                }
+                                if (i < totalPages) {
+                                    pdf.line(10, pageHeight - 20, pageWidth - 10, pageHeight - 20);
+                                }
+
+                                pdf.setFontSize(10);
+                                pdf.setTextColor(0);
+                                pdf.text(i.toString(), pageWidth - 15, pageHeight - 15);
+                                pdf.text('GTH-F-064 V05', pageWidth - 45, pageHeight - 10);
+                            }
+                            
+                            const pdfBlob = await pdf.output('blob');
+                            
+                            const formData = new FormData();
+                            formData.append('pdf', pdfBlob, 'agenda_{{ $agenda->id }}.pdf');
+                            formData.append('_token', '{{ csrf_token() }}');
+                            
+                            const response = await fetch('{{ route('agenda.save-pdf', $agenda->id) }}', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            
+                            const resData = await response.json();
+                            if (resData.success) {
+                                styleTag.remove();
+                                if (viewport) {
+                                    if (window.pdfCreatedViewport) {
+                                        viewport.remove();
+                                    } else if (window.pdfOriginalViewport) {
+                                        viewport.setAttribute('content', window.pdfOriginalViewport);
+                                    }
+                                }
+                                window.location.reload();
+                            } else {
+                                console.error('Error al guardar PDF:', resData);
+                                document.getElementById('loading-overlay').innerHTML = '<p style="color:red;font-weight:bold;margin-top:20px;">Error al guardar el PDF. Por favor recargue.</p>';
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            document.getElementById('loading-overlay').innerHTML = '<p style="color:red;font-weight:bold;margin-top:20px;">Error: ' + err.message + '</p>';
+                        }
+                    }, 500);
+                } catch (outerErr) {
+                    console.error("Error during PDF initialization:", outerErr);
+                    document.getElementById('loading-overlay').innerHTML = '<p style="color:red;font-weight:bold;margin-top:20px;">Error de inicialización: ' + outerErr.message + '</p>';
+                }
+            });
+        });
+    </script>
+    @endif
 </body>
 
 </html>

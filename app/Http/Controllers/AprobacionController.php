@@ -73,4 +73,74 @@ class AprobacionController extends Controller
         return redirect()->to(session('back_url_reportar_dia', route('inicio')))
             ->with('success', 'La agenda ha sido devuelta al contratista para su corrección.');
     }
+
+    public function autorizarLegalizacion(Request $request, $id)
+    {
+        $agenda = AgendaDesplazamiento::with('user')->findOrFail($id);
+        $user = auth()->user();
+        $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
+
+        if (!$funcionario || $agenda->supervisor_id !== $funcionario->id) {
+            abort(403, 'No tiene permisos para autorizar esta legalización.');
+        }
+
+        if ($agenda->legalizacion_estado !== 'ENVIADA') {
+            return redirect()->back()->with('error', 'La legalización no se encuentra en estado ENVIADA.');
+        }
+
+        $esFuncionarioAgenda = ($agenda->user && $agenda->user->role === 'funcionario');
+        $requiereFirma = !$esFuncionarioAgenda || $agenda->realiza_declaracion;
+
+        // Solo exigir firma si requiere firma
+        if ($requiereFirma) {
+            if (!$user->firma || !$funcionario || !$funcionario->firma) {
+                return redirect()->back()->withErrors(['firma' => 'Debe registrar su firma digital en la sección "Mi Firma" antes de autorizar legalizaciones.']);
+            }
+        }
+
+        // Sincronizar firma del supervisor
+        if ($requiereFirma && $agenda->supervisor_id) {
+            \App\Models\LiderDeProceso::where('id', $agenda->supervisor_id)->update(['firma' => $user->firma]);
+        }
+
+        $agenda->update([
+            'legalizacion_estado' => 'APROBADA_SUPERVISOR',
+            'legalizacion_observaciones' => null,
+            'legalizacion_firma_supervisor_path' => $funcionario ? $funcionario->firma : null
+        ]);
+
+        $mensajeExito = $requiereFirma 
+            ? 'Legalización aprobada y firmada correctamente. Enviada a Legalización.'
+            : 'Legalización aprobada correctamente. Enviada a Legalización.';
+
+        return redirect()->to(session('back_url_reportar_dia', route('inicio')))
+            ->with('success', $mensajeExito);
+    }
+
+    public function devolverLegalizacion(Request $request, $id)
+    {
+        $request->validate([
+            'observaciones' => 'required|string|max:500',
+        ]);
+
+        $agenda = AgendaDesplazamiento::findOrFail($id);
+        $user = auth()->user();
+        $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
+
+        if (!$funcionario || $agenda->supervisor_id !== $funcionario->id) {
+            abort(403, 'No tiene permisos para devolver esta legalización.');
+        }
+
+        if ($agenda->legalizacion_estado !== 'ENVIADA') {
+            return redirect()->back()->with('error', 'La legalización no se encuentra en estado ENVIADA.');
+        }
+
+        $agenda->update([
+            'legalizacion_estado' => 'DEVUELTA_SUPERVISOR',
+            'legalizacion_observaciones' => $request->observaciones,
+        ]);
+
+        return redirect()->to(session('back_url_reportar_dia', route('inicio')))
+            ->with('success', 'La legalización ha sido devuelta al contratista para su corrección.');
+    }
 }

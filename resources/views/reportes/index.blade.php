@@ -266,10 +266,36 @@
                                                 @endif
                                             @endif
 
-                                            <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank" 
-                                               class="btn btn-sm btn-dark rounded-pill px-2 shadow-sm fw-bold" title="Ver PDF" style="min-width: 70px;">
-                                                <i class="fas fa-eye"></i> PDF
-                                            </a>
+                                             @if($agenda->estado && $agenda->estado->nombre === 'APROBADA')
+                                                 @php
+                                                     $user = auth()->user();
+                                                     $funcionario = \App\Models\LiderDeProceso::where('numero_documento', $user->numero_documento)->first();
+                                                     $funcionarioId = $funcionario ? $funcionario->id : null;
+                                                     
+                                                     $canLegalizar = ($user->role === 'administrador') || 
+                                                                     ($agenda->user_id === $user->id) || 
+                                                                     ($funcionarioId && ($agenda->supervisor_id === $funcionarioId || $agenda->ordenador_id === $funcionarioId));
+                                                 @endphp
+                                                 
+                                                 @if(empty($agenda->orden_viaje))
+                                                     @if($canLegalizar)
+                                                         <a href="{{ route('legalizacion.crear', $agenda->id) }}" 
+                                                            class="btn btn-sm btn-success rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center" title="Legalizar Desplazamiento">
+                                                             <i class="fas fa-file-invoice-dollar me-1"></i> Legalizar
+                                                         </a>
+                                                     @endif
+                                                 @else
+                                                     <a href="{{ route('legalizacion.ver', $agenda->id) }}" target="_blank" 
+                                                        class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center" title="Ver Legalización">
+                                                         <i class="fas fa-file-contract me-1"></i> Ver Legalización
+                                                     </a>
+                                                 @endif
+                                             @endif
+
+                                             <a href="{{ route('agenda.pdf', $agenda->id) }}" target="_blank" 
+                                                class="btn btn-sm btn-dark rounded-pill px-2 shadow-sm fw-bold" title="Ver PDF" style="min-width: 70px;">
+                                                 <i class="fas fa-eye"></i> PDF
+                                             </a>
 
                                             {{-- Acción de Eliminar (Solo para Supervisor o Admin) --}}
                                             @if(in_array(auth()->user()->role, ['supervisor_contrato', 'administrador']))

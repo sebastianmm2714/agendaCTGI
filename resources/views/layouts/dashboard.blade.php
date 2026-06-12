@@ -249,8 +249,8 @@
                 @endif
 
 
-                {{-- ENLACE UNIFICADO: REPORTES (Oculto para Admin, Contratistas, Funcionarios y Viáticos) --}}
-                @if(!in_array(auth()->user()->role, ['administrador', 'contratista', 'funcionario', 'supervisor_contrato', 'ordenador_gasto', 'viaticos']))
+                {{-- ENLACE UNIFICADO: REPORTES (Oculto para Admin, Contratistas, Funcionarios, Viáticos y Legalización) --}}
+                @if(!in_array(auth()->user()->role, ['administrador', 'contratista', 'funcionario', 'supervisor_contrato', 'ordenador_gasto', 'viaticos', 'legalizacion']))
                     <a href="{{ route('reportes') }}" 
                     class="{{ request()->routeIs('reportes') || request()->routeIs('reportes.show') ? 'active-link' : '' }} mt-2">
                         <div class="d-flex align-items-center gap-3">
@@ -276,8 +276,24 @@
                 </a>
                 @endif
 
-                {{-- ENLACE: MI FIRMA (Oculto para Admin y Viáticos, Admin tiene su propio panel) --}}
-                @if(auth()->user()->role != 'viaticos' && auth()->user()->role != 'administrador')
+
+
+                {{-- ENLACE: PERSONAL (Solo para Legalización) --}}
+                @if(auth()->user()->role == 'legalizacion')
+                <a href="{{ route('legalizacion.personal.index') }}" 
+                class="{{ request()->routeIs('legalizacion.personal.index') ? 'active-link' : '' }} mt-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-2.533-3.076c-1.03-.353-2.14-.545-3.213-.545a10.115 10.115 0 0 0-4.052.876 1.5 1.5 0 0 0-.903 1.341V18c0 .265.105.52.293.707.188.188.442.293.707.293h2.362Z" />
+                            <path d="M12.14 16.14V15a3 3 0 0 0-3-3h-1.5a3 3 0 0 0-3 3v1.14M11.07 13.07a3 3 0 1 1-4.24-4.24 3 3 0 0 1 4.24 4.24ZM18.75 12a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" />
+                        </svg>
+                        <span>Personal</span>
+                    </div>
+                </a>
+                @endif
+
+                {{-- ENLACE: MI FIRMA (Oculto para Admin, Viáticos y Legalización; Admin tiene su propio panel) --}}
+                @if(auth()->user()->role != 'viaticos' && auth()->user()->role != 'legalizacion' && auth()->user()->role != 'administrador')
                 <a href="#" data-bs-toggle="modal" data-bs-target="#modalFirmaUsuario" class="mt-2">
                     <div class="d-flex align-items-center gap-3">
                         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -463,6 +479,19 @@
         $('#inputFirma').change(function() {
             const file = this.files[0];
             if (file) {
+                // Check file size (10 MB)
+                const maxSizeBytes = 10 * 1024 * 1024;
+                if (file.size > maxSizeBytes) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Archivo demasiado grande',
+                        text: 'La imagen de firma no debe superar los 10 MB.',
+                        confirmButtonColor: '#39a900'
+                    });
+                    $('#inputFirma').val('');
+                    return;
+                }
+
                 let reader = new FileReader();
                 reader.onload = function(event) {
                     if ($('#previewFirmaActual').length) {
@@ -557,7 +586,7 @@
         Swal.fire({
             icon: 'success',
             title: '¡Éxito!',
-            text: '{{ session('success') ?? session('alerta_exitosa') }}',
+            text: {!! json_encode(session('success') ?? session('alerta_exitosa')) !!},
             timer: 3000,
             showConfirmButton: false
         });
@@ -571,7 +600,7 @@
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: '{{ session('error') }}'
+            text: {!! json_encode(session('error')) !!}
         });
     });
 </script>
@@ -583,7 +612,7 @@
         Swal.fire({
             icon: 'warning',
             title: 'Atención',
-            text: '{{ session('warning') }}'
+            text: {!! json_encode(session('warning')) !!}
         });
     });
 </script>

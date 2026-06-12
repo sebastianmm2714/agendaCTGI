@@ -179,6 +179,11 @@ class ReportarDiaController extends Controller
      */
     public function enviar(AgendaDesplazamiento $agenda)
     {
+        // Validar propiedad (A menos que sea administrador)
+        if ($agenda->user_id !== auth()->id() && auth()->user()->role !== 'administrador') {
+            abort(403, 'No tienes permiso para enviar esta agenda.');
+        }
+
         // Validar propiedad
         if (!in_array($agenda->estado->nombre, ['BORRADOR', 'CORRECCIÓN'])) {
             return back()->with('error', 'Esta agenda ya ha sido enviada o procesada.');

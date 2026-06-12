@@ -10,7 +10,7 @@
                     <i class="fas fa-file-signature fa-3x me-4 opacity-75"></i>
                     <div>
                         <h1 class="display-6 fw-bold mb-0">Solicitud de Comisión de Servicios</h1>
-                        <p class="lead mb-0 opacity-75">Formato Institucional GTH-F-188 V01</p>
+                        <p class="lead mb-0 opacity-75">Formato Institucional GTH-F-064 V05</p>
                     </div>
                 </div>
             </div>
@@ -290,8 +290,11 @@
             box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.1) !important;
         }
 
-        /* Ajustes específicos para móvil */
+        /* Ajustes de Responsividad para Diferentes Pantallas (Celulares, Tablets, PC) */
         @media (max-width: 768px) {
+            .container-fluid {
+                padding: 1rem 0.5rem !important;
+            }
             .card-body {
                 padding: 1.5rem !important;
             }
@@ -300,6 +303,73 @@
             }
             .btn-lg {
                 font-size: 1rem;
+                padding: 0.85rem 1.5rem !important;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .container-fluid {
+                padding: 0.75rem 0.25rem !important;
+            }
+            .card-body {
+                padding: 1.25rem !important;
+            }
+            .display-6 {
+                font-size: 1.25rem;
+            }
+            .lead {
+                font-size: 0.9rem !important;
+            }
+            .input-group-text {
+                padding: 0.6rem 0.75rem;
+            }
+            .form-control, .form-select {
+                padding: 0.6rem 0.8rem !important;
+                font-size: 0.95rem !important;
+            }
+            .form-label {
+                font-size: 0.65rem !important;
+                margin-bottom: 0.3rem !important;
+            }
+            textarea.form-control {
+                font-size: 1rem !important;
+                padding: 0.75rem !important;
+            }
+            .card {
+                margin-bottom: 1rem !important;
+            }
+            .row.g-4 {
+                --bs-gutter-y: 1.25rem;
+            }
+            /* Destinos items spacing */
+            .destino-item {
+                margin-bottom: 1rem !important;
+            }
+            .destino-item .card-body {
+                padding: 1rem !important;
+            }
+            .destino-trigger {
+                min-height: 50px !important;
+                padding: 0.75rem !important;
+            }
+            .destino-trigger-text {
+                font-size: 0.85rem !important;
+            }
+            .border-dashed {
+                padding: 0.85rem !important;
+                font-size: 0.85rem !important;
+            }
+            .card-footer {
+                padding: 1.25rem !important;
+            }
+            .d-flex.flex-column.flex-md-row.align-items-center button {
+                width: 100% !important;
+                padding: 0.85rem !important;
+                font-size: 0.95rem !important;
+            }
+            .d-flex.flex-column.flex-md-row.align-items-center a {
+                width: 100% !important;
+                text-align: center;
             }
         }
     </style>

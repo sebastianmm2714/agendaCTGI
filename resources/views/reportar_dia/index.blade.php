@@ -458,7 +458,7 @@
                     if (!hasFirma) {
                         Swal.fire({
                             title: 'Firma Faltante',
-                            text: 'Debes cargar tu firma en el apartado "Mi Firma" para poder enviar la agenda.',
+                            text: 'Debes cargar tu firma digital en el apartado "Mi Firma" antes de poder enviar agendas.',
                             icon: 'error',
                             confirmButtonColor: '#39a900',
                             confirmButtonText: 'Ir a Mi Firma'

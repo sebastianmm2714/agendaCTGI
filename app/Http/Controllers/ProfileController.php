@@ -10,7 +10,7 @@ class ProfileController extends Controller
     public function updateSignature(Request $request)
     {
         $request->validate([
-            'firma' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'firma' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240',
         ]);
 
         $user = auth()->user();

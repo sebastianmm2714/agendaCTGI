@@ -36,7 +36,7 @@ class UserObserver
                     'numero_documento' => $user->numero_documento,
                     'tipo_documento' => $user->tipo_documento,
                     'numero_cuenta_tipo' => $user->numero_cuenta_tipo,
-                    'cargo' => $user->cargo,
+                    'cargo' => $user->cargo ?? $lider->cargo,
                     'tipo' => $tipoLider
                 ]);
             });

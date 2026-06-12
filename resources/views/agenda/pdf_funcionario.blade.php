@@ -111,6 +111,7 @@ td {
         box-shadow: none;
         width: 100%;
         padding: 10mm;
+        min-height: unset !important;
     }
 }
 
@@ -334,7 +335,7 @@ td {
         </table>
         <div style="text-align: right; margin-top: 5px; font-size: 14px; font-weight: normal;">
             1<br>
-            GTH-F-188 V01
+            GTH-F-064 V05
         </div>
     </div>
 </body>

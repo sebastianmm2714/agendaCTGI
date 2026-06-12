@@ -565,6 +565,154 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="{{ asset('js/scripts.js') }}"></script>
+
+  @if(isset($isFinalState) && $isFinalState)
+  <!-- Capa de carga para guardar el PDF firmado -->
+  <div id="loading-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif;">
+      <div style="border: 6px solid #f3f3f3; border-top: 6px solid #39A900; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;"></div>
+      <p style="margin-top: 20px; font-weight: bold; color: #333; font-size: 16px;">Generando y guardando documento firmado...</p>
+      <p style="color: #666; font-size: 14px;">Este proceso se realiza solo una vez.</p>
+  </div>
+  <style>
+      @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+      }
+  </style>
+  <script>
+      window.addEventListener('DOMContentLoaded', () => {
+          // Asegurar que las firmas e imágenes estén completamente cargadas antes de proceder
+          const elemento = document.querySelector('.hoja');
+          const images = elemento.querySelectorAll('img');
+          const promises = Array.from(images).map(img => {
+              if (img.complete) return Promise.resolve();
+              return new Promise(resolve => {
+                  img.onload = resolve;
+                  img.onerror = resolve;
+              });
+          });
+
+          Promise.all(promises).then(async () => {
+              try {
+                  // Desplazar al tope para evitar bug de scrollY
+                  window.scrollTo(0, 0);
+
+                  // Guardar viewport original para restaurar después en celulares
+                  let viewport = document.querySelector('meta[name="viewport"]');
+                  window.pdfOriginalViewport = '';
+                  window.pdfCreatedViewport = false;
+                  
+                  if (!viewport) {
+                      viewport = document.createElement('meta');
+                      viewport.name = 'viewport';
+                      document.head.appendChild(viewport);
+                      window.pdfCreatedViewport = true;
+                  } else {
+                      window.pdfOriginalViewport = viewport.getAttribute('content');
+                  }
+                  viewport.setAttribute('content', 'width=816, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+
+                  // Forzar ancho rígido de 816px para emular vista desktop en móviles
+                  const styleTag = document.createElement('style');
+                  styleTag.id = 'pdf-forced-styles';
+                  styleTag.innerHTML = `
+                      html, body {
+                          width: 816px !important;
+                          min-width: 816px !important;
+                          overflow: visible !important;
+                      }
+                      .hoja {
+                          width: 816px !important;
+                          min-width: 816px !important;
+                          margin: 0 auto !important;
+                          padding: 10mm !important;
+                          min-height: unset !important;
+                      }
+                  `;
+                  document.head.appendChild(styleTag);
+                  elemento.style.paddingTop = '0';
+                  
+                  const opciones = {
+                      margin: [10, 0, 20, 0],
+                      filename: 'Agenda_Desplazamiento_SENA_{{ $agenda->id }}.pdf',
+                      image: { type: 'jpeg', quality: 0.80 },
+                      html2canvas: { 
+                          scale: 1.5, 
+                          useCORS: true, 
+                          letterRendering: true,
+                          scrollY: 0, scrollX: 0, x: 0, y: 0,
+                          windowWidth: 816
+                      },
+                      jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+                      pagebreak: { mode: ['css', 'legacy'] }
+                  };
+
+                  // Esperar 500ms a que el navegador termine el reflow del diseño a 816px antes de generar el PDF
+                  setTimeout(async () => {
+                      try {
+                          const pdf = await html2pdf().set(opciones).from(elemento).toPdf().get('pdf');
+                          const totalPages = pdf.internal.getNumberOfPages();
+                          const pageWidth = pdf.internal.pageSize.getWidth();
+                          const pageHeight = pdf.internal.pageSize.getHeight();
+                          
+                          for (let i = 1; i <= totalPages; i++) {
+                              pdf.setPage(i);
+                              
+                              pdf.setDrawColor(0);
+                              pdf.setLineWidth(0.4);
+
+                              if (i > 1) {
+                                  pdf.line(10, 10, pageWidth - 10, 10);
+                              }
+                              if (i < totalPages) {
+                                  pdf.line(10, pageHeight - 20, pageWidth - 10, pageHeight - 20);
+                              }
+
+                              pdf.setFontSize(10);
+                              pdf.setTextColor(100);
+                              pdf.text('Página ' + i + ' de ' + totalPages, pageWidth - 25, pageHeight - 15);
+                              pdf.text('GCCON-F-095', pageWidth - 45, pageHeight - 10);
+                          }
+                          
+                          const pdfBlob = await pdf.output('blob');
+                          
+                          const formData = new FormData();
+                          formData.append('pdf', pdfBlob, 'agenda_{{ $agenda->id }}.pdf');
+                          formData.append('_token', '{{ csrf_token() }}');
+                          
+                          const response = await fetch('{{ route('agenda.save-pdf', $agenda->id) }}', {
+                              method: 'POST',
+                              body: formData
+                          });
+                          
+                          const resData = await response.json();
+                          if (resData.success) {
+                              styleTag.remove();
+                              if (viewport) {
+                                  if (window.pdfCreatedViewport) {
+                                      viewport.remove();
+                                  } else if (window.pdfOriginalViewport) {
+                                      viewport.setAttribute('content', window.pdfOriginalViewport);
+                                  }
+                              }
+                              window.location.reload();
+                          } else {
+                              console.error('Error al guardar PDF:', resData);
+                              document.getElementById('loading-overlay').innerHTML = '<p style="color:red;font-weight:bold;margin-top:20px;">Error al guardar el PDF. Por favor recargue.</p>';
+                          }
+                      } catch (err) {
+                          console.error(err);
+                          document.getElementById('loading-overlay').innerHTML = '<p style="color:red;font-weight:bold;margin-top:20px;">Error: ' + err.message + '</p>';
+                      }
+                  }, 500);
+                } catch (outerErr) {
+                    console.error("Error during PDF initialization:", outerErr);
+                    document.getElementById('loading-overlay').innerHTML = '<p style="color:red;font-weight:bold;margin-top:20px;">Error de inicialización: ' + outerErr.message + '</p>';
+                }
+          });
+      });
+  </script>
+  @endif
 </body>
 
 </html>

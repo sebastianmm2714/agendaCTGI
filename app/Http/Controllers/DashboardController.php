@@ -16,6 +16,57 @@ class DashboardController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
+        if ($user->role === 'legalizacion') {
+            $filtro  = $request->get('ver');
+            $search  = $request->get('search');
+            $perPage = (int) $request->get('per_page', 10);
+
+            $baseStatsQuery = AgendaDesplazamiento::query()->has('legalizacion');
+
+            $stats = [
+                'pendientes'  => (clone $baseStatsQuery)->whereHas('legalizacion', function($q) { $q->where('estado', 'APROBADA_SUPERVISOR'); })->count(),
+                'enviadas'    => (clone $baseStatsQuery)->whereHas('legalizacion', function($q) { $q->where('estado', 'APROBADA_LEGALIZACION'); })->count(),
+                'finalizadas' => (clone $baseStatsQuery)->whereHas('legalizacion', function($q) { $q->where('estado', 'APROBADA_ORDENADOR'); })->count(),
+                'devueltas'   => (clone $baseStatsQuery)->whereHas('legalizacion', function($q) { $q->whereIn('estado', ['DEVUELTA_SUPERVISOR', 'DEVUELTA_LEGALIZACION', 'DEVUELTA_ORDENADOR']); })->count(),
+            ];
+
+            $query = AgendaDesplazamiento::query()->has('legalizacion');
+
+            if ($request->filled('search')) {
+                $query->where(function($q) use ($search) {
+                    $q->whereHas('user', function($qu) use ($search) {
+                        $qu->where('name', 'like', "%$search%")
+                           ->orWhere('numero_documento', 'like', "%$search%");
+                    })
+                    ->orWhere('ruta', 'like', "%$search%")
+                    ->orWhere('destinos', 'like', "%$search%")
+                    ->orWhereRaw("DATE_FORMAT(fecha_inicio, '%d/%m/%Y') LIKE ?", ["%$search%"])
+                    ->orWhereRaw("DATE_FORMAT(fecha_fin, '%d/%m/%Y') LIKE ?", ["%$search%"]);
+                });
+            }
+
+            $agendas = $query->with(['user', 'estado', 'clasificacion', 'actividades', 'obligaciones', 'legalizacion'])
+                ->when($filtro === 'pendientes', function ($q) {
+                    return $q->whereHas('legalizacion', function($sq) { $sq->where('estado', 'APROBADA_SUPERVISOR'); });
+                })
+                ->when($filtro === 'enviadas', function ($q) {
+                    return $q->whereHas('legalizacion', function($sq) { $sq->where('estado', 'APROBADA_LEGALIZACION'); });
+                })
+                ->when($filtro === 'finalizadas', function ($q) {
+                    return $q->whereHas('legalizacion', function($sq) { $sq->where('estado', 'APROBADA_ORDENADOR'); });
+                })
+                ->when($filtro === 'devueltas', function ($q) {
+                    return $q->whereHas('legalizacion', function($sq) { $sq->whereIn('estado', ['DEVUELTA_SUPERVISOR', 'DEVUELTA_LEGALIZACION', 'DEVUELTA_ORDENADOR']); });
+                })
+                ->orderBy('updated_at', 'desc')
+                ->paginate($perPage)->appends($request->all());
+
+            session(['back_url_reportar_dia' => $request->fullUrl()]);
+            $supervisores = collect();
+
+            return view('inicio', compact('stats', 'agendas', 'filtro', 'supervisores'));
+        }
+
         $filtro  = $request->get('ver');
         $search  = $request->get('search');
         $perPage = (int) $request->get('per_page', 10);
@@ -71,11 +122,20 @@ class DashboardController extends Controller
             $baseStatsQuery->where('ordenador_id', $funcionario ? $funcionario->id : 0);
         }
 
-        // Devueltas: Tienen observaciones y no están finalizadas
-        $queryDevueltasStats = (clone $baseStatsQuery)->whereNotNull('observaciones_finanzas')
-            ->whereHas('estado', function($q) {
-                $q->whereNotIn('nombre', ['APROBADA_VIATICOS', 'APROBADA']);
+        // Devueltas: Tienen observaciones y no están finalizadas (o su legalización ha sido devuelta)
+        $queryDevueltasStats = (clone $baseStatsQuery)->where(function($q) use ($user) {
+            $q->where(function($q2) {
+                $q2->whereNotNull('observaciones_finanzas')
+                   ->whereHas('estado', function($e) {
+                       $e->whereNotIn('nombre', ['APROBADA_VIATICOS', 'APROBADA']);
+                   });
             });
+            if ($user->role !== 'viaticos') {
+                $q->orWhereHas('legalizacion', function($sq) {
+                    $sq->whereIn('estado', ['DEVUELTA_SUPERVISOR', 'DEVUELTA_LEGALIZACION', 'DEVUELTA_ORDENADOR']);
+                });
+            }
+        });
         $idDevueltasStats = $queryDevueltasStats->pluck('id')->toArray();
 
         // Enviadas / En Proceso: Ya no son borradores, pero aún no están finalizadas totalmente (Excepto APROBADA)
@@ -98,11 +158,27 @@ class DashboardController extends Controller
             'devueltas' => $queryDevueltasStats->count(),
         ];
 
+        // Sumar legalizaciones pendientes al contador de la tarjeta según el rol
+        if ($user->role === 'supervisor_contrato') {
+            $stats['pendientes'] += (clone $baseStatsQuery)->whereHas('legalizacion', function($sq) { $sq->where('estado', 'ENVIADA'); })->count();
+        } elseif ($user->role === 'ordenador_gasto') {
+            $stats['pendientes'] += (clone $baseStatsQuery)->whereHas('legalizacion', function($sq) { $sq->where('estado', 'APROBADA_LEGALIZACION'); })->count();
+        }
+
         // 6. Listado para la tabla (Aplicando búsqueda y filtros)
-        $idDevueltasSearch = (clone $query)->whereNotNull('observaciones_finanzas')
-            ->whereHas('estado', function($q) {
-                $q->whereNotIn('nombre', ['APROBADA_VIATICOS', 'APROBADA']);
-            })->pluck('id')->toArray();
+        $idDevueltasSearch = (clone $query)->where(function($q) use ($user) {
+            $q->where(function($q2) {
+                $q2->whereNotNull('observaciones_finanzas')
+                   ->whereHas('estado', function($e) {
+                       $e->whereNotIn('nombre', ['APROBADA_VIATICOS', 'APROBADA']);
+                   });
+            });
+            if ($user->role !== 'viaticos') {
+                $q->orWhereHas('legalizacion', function($sq) {
+                    $sq->whereIn('estado', ['DEVUELTA_SUPERVISOR', 'DEVUELTA_LEGALIZACION', 'DEVUELTA_ORDENADOR']);
+                });
+            }
+        })->pluck('id')->toArray();
 
         $queryEnviadasSearch = match ($user->role) {
             'administrador', 'contratista', 'funcionario' => (clone $query)->whereHas('estado', function($q){ $q->whereNotIn('nombre', ['BORRADOR', 'APROBADA']); }),
@@ -115,8 +191,23 @@ class DashboardController extends Controller
 
         $queryFinalizadasSearch = (clone $query)->whereHas('estado', function($q){ $q->where('nombre', 'APROBADA'); });
 
-        $agendas = $query->with(['user', 'estado', 'clasificacion', 'actividades', 'obligaciones'])
-            ->when($filtro == 'pendientes', function ($q) use ($estadoPendiente, $idDevueltasSearch) {
+        $agendas = $query->with(['user', 'estado', 'clasificacion', 'actividades', 'obligaciones', 'legalizacion'])
+            ->when($filtro == 'pendientes', function ($q) use ($estadoPendiente, $idDevueltasSearch, $user) {
+                if ($user->role === 'supervisor_contrato') {
+                    return $q->where(function($sq) use ($estadoPendiente, $idDevueltasSearch) {
+                        $sq->where(function($sq1) use ($estadoPendiente, $idDevueltasSearch) {
+                            $sq1->where('estado_id', $estadoPendiente?->id)->whereNotIn('id', $idDevueltasSearch);
+                        })
+                        ->orWhereHas('legalizacion', function($lsq) { $lsq->where('estado', 'ENVIADA'); });
+                    });
+                } elseif ($user->role === 'ordenador_gasto') {
+                    return $q->where(function($sq) use ($estadoPendiente, $idDevueltasSearch) {
+                        $sq->where(function($sq1) use ($estadoPendiente, $idDevueltasSearch) {
+                            $sq1->where('estado_id', $estadoPendiente?->id)->whereNotIn('id', $idDevueltasSearch);
+                        })
+                        ->orWhereHas('legalizacion', function($lsq) { $lsq->where('estado', 'APROBADA_LEGALIZACION'); });
+                    });
+                }
                 return $q->where('estado_id', $estadoPendiente?->id)->whereNotIn('id', $idDevueltasSearch);
             })
             ->when($filtro == 'enviadas', function ($q) use ($queryEnviadasSearch) {

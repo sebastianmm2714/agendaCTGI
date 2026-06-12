@@ -18,7 +18,40 @@ class AppServiceProvider extends ServiceProvider
     {
         \Illuminate\Pagination\Paginator::useBootstrapFive();
 
-        // 1. Automatización de Storage Link (Para cPanel/Producción)
+        // Forzar HTTPS en producción o si se define FORCE_HTTPS=true
+        if (config('app.env') === 'production' || env('FORCE_HTTPS', false)) {
+            \URL::forceScheme('https');
+        }
+
+        // 1. Automatización de Migraciones (Para cPanel/Producción)
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('legalizaciones') || 
+                !\Illuminate\Support\Facades\Schema::hasColumn('legalizaciones', 'soportes_desplazamiento')) {
+                \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            }
+        } catch (\Exception $e) {
+            // Silencioso si falla por restricciones o base de datos no configurada
+        }
+
+        // 2. Automatización de Carpetas de Subida y Permisos
+        try {
+            $paths = [
+                storage_path('app/public/legalizacion/fotos'),
+                storage_path('app/public/legalizacion/planillas'),
+                storage_path('app/public/legalizacion/declaraciones'),
+                storage_path('app/public/legalizacion/tiquetes'),
+                storage_path('app/final_pdfs'),
+            ];
+            foreach ($paths as $p) {
+                if (!file_exists($p)) {
+                    @mkdir($p, 0775, true);
+                }
+            }
+        } catch (\Exception $e) {
+            // Silencioso
+        }
+
+        // 3. Automatización de Storage Link (Para cPanel/Producción)
         try {
             $link = public_path('storage');
             $target = storage_path('app/public');

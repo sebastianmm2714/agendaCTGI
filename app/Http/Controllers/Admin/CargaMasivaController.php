@@ -145,11 +145,12 @@ class CargaMasivaController extends Controller
                 if ($roleSource) {
                     $roleValue = strtoupper(trim($data[$roleSource]));
                     $role = match(true) {
-                        str_contains($roleValue, 'SUPERVISOR') => 'supervisor_contrato',
-                        str_contains($roleValue, 'ORDENADOR') => 'ordenador_gasto',
-                        str_contains($roleValue, 'VIATICOS')  => 'viaticos',
-                        str_contains($roleValue, 'ADMIN')     => 'administrador',
-                        str_contains($roleValue, 'FUNCIO')    => 'funcionario',
+                        str_contains($roleValue, 'SUPERVISOR')   => 'supervisor_contrato',
+                        str_contains($roleValue, 'ORDENADOR')    => 'ordenador_gasto',
+                        str_contains($roleValue, 'VIATICOS')     => 'viaticos',
+                        str_contains($roleValue, 'LEGALIZACION') => 'legalizacion',
+                        str_contains($roleValue, 'ADMIN')        => 'administrador',
+                        str_contains($roleValue, 'FUNCIO')       => 'funcionario',
                         default => 'contratista'
                     };
                 }
@@ -173,7 +174,7 @@ class CargaMasivaController extends Controller
                         return response()->json(['success' => false, 'message' => "Error en la fila {$rowNum}: El 'cargo' es obligatorio para líderes de proceso."], 400);
                     }
                     if (empty($data['tipo'] ?? '')) {
-                        return response()->json(['success' => false, 'message' => "Error en la fila {$rowNum}: El 'tipo' (SUPERVISOR/ORDENADOR/VIATICOS) es obligatorio para líderes."], 400);
+                        return response()->json(['success' => false, 'message' => "Error en la fila {$rowNum}: El 'tipo' (SUPERVISOR/ORDENADOR/VIATICOS/LEGALIZACION) es obligatorio para líderes."], 400);
                     }
                 }
             }
@@ -200,11 +201,12 @@ class CargaMasivaController extends Controller
                     if ($roleSource) {
                         $roleValue = strtoupper(trim($data[$roleSource]));
                         $role = match(true) {
-                            str_contains($roleValue, 'SUPERVISOR') => 'supervisor_contrato',
-                            str_contains($roleValue, 'ORDENADOR') => 'ordenador_gasto',
-                            str_contains($roleValue, 'VIATICOS')  => 'viaticos',
-                            str_contains($roleValue, 'ADMIN')     => 'administrador',
-                            str_contains($roleValue, 'FUNCIO')    => 'funcionario',
+                            str_contains($roleValue, 'SUPERVISOR')   => 'supervisor_contrato',
+                            str_contains($roleValue, 'ORDENADOR')    => 'ordenador_gasto',
+                            str_contains($roleValue, 'VIATICOS')     => 'viaticos',
+                            str_contains($roleValue, 'LEGALIZACION') => 'legalizacion',
+                            str_contains($roleValue, 'ADMIN')        => 'administrador',
+                            str_contains($roleValue, 'FUNCIO')       => 'funcionario',
                             default => 'contratista'
                         };
                     }
@@ -238,7 +240,7 @@ class CargaMasivaController extends Controller
                         $plainPassword = "******** (Sin cambios)";
                     }
 
-                    if (in_array($role, ['supervisor_contrato', 'ordenador_gasto', 'viaticos'])) {
+                    if (in_array($role, ['supervisor_contrato', 'ordenador_gasto', 'viaticos', 'legalizacion'])) {
                         $lider = LiderDeProceso::where('numero_documento', $numeroDocumento)->first();
                         if (!$lider) {
                             LiderDeProceso::create([
